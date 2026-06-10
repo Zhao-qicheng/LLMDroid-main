@@ -1,0 +1,56 @@
+{
+  "tag": "2026-06-10_234251",
+  "event": {
+    "event_type": "touch",
+    "log_lines": null,
+    "action_type": "CLICK",
+    "logger": "Logger",
+    "_InputEvent__visit_count": 1,
+    "_target": "Widget",
+    "_UIEvent__state": null,
+    "_UIEvent__listener": null,
+    "x": null,
+    "y": null,
+    "view": {
+      "package": "com.plan.kot32.tomatotime",
+      "visible": true,
+      "checkable": false,
+      "child_count": 0,
+      "editable": false,
+      "clickable": true,
+      "is_password": false,
+      "focusable": true,
+      "enabled": true,
+      "content_description": null,
+      "children": [],
+      "focused": false,
+      "bounds": [
+        [
+          44,
+          211
+        ],
+        [
+          118,
+          285
+        ]
+      ],
+      "resource_id": "com.plan.kot32.tomatotime:id/toolbar_back",
+      "checked": false,
+      "text": null,
+      "class": "android.widget.Button",
+      "scrollable": false,
+      "selected": false,
+      "long_clickable": false,
+      "parent": 6,
+      "temp_id": 7,
+      "size": "74*74",
+      "signature": "[class]android.widget.Button[resource_id]com.plan.kot32.tomatotime:id/toolbar_back[text]None[enabled,,]",
+      "view_str": "6bd5789190fcb162f2a923eef4eba0c8",
+      "widget": "Widget",
+      "content_free_signature": "[class]android.widget.Button[resource_id]com.plan.kot32.tomatotime:id/toolbar_back"
+    }
+  },
+  "start_state": "05ded4612705b92b455a647a0a48d373",
+  "stop_state": "8f676bd1bb997091cffc279053456d49",
+  "event_str": "TouchEvent(state=05ded4612705b92b455a647a0a48d373, view=6bd5789190fcb162f2a923eef4eba0c8(WebViewActivity/Button-))"
+}

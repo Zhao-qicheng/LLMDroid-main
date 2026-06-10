@@ -1,0 +1,14 @@
+{
+  "tag": "2026-06-10_234517",
+  "event": {
+    "event_type": "key",
+    "log_lines": null,
+    "action_type": "BACK",
+    "logger": "Logger",
+    "_InputEvent__visit_count": 1,
+    "name": "BACK"
+  },
+  "start_state": "eb05178f242db2d4e131198cb3a9ecb6",
+  "stop_state": "e875c8f0aa284c083a1f2f06b3096797",
+  "event_str": "KeyEvent(state=eb05178f242db2d4e131198cb3a9ecb6, name=BACK)"
+}

@@ -1,0 +1,250 @@
+Activity Resolver Table:
+  Schemes:
+      tomatodo:
+        5c7818e com.plan.kot32.tomatotime/.activity.SplashWithURLStartedActivity filter 13f9daf
+          Action: "android.intent.action.VIEW"
+          Category: "android.intent.category.DEFAULT"
+          Category: "android.intent.category.BROWSABLE"
+          Scheme: "tomatodo"
+      tomatodojump:
+        e7ba5bc com.plan.kot32.tomatotime/.activity.OpenWithBreeno filter 28d0945
+          Action: "android.intent.action.VIEW"
+          Category: "android.intent.category.DEFAULT"
+          Category: "android.intent.category.BROWSABLE"
+          Scheme: "tomatodojump"
+      qwalletXXXXXXXX:
+        e3b61a8 com.plan.kot32.tomatotime/com.pingplusplus.android.PaymentActivity filter 6f9f4c1
+          Action: "android.intent.action.VIEW"
+          Category: "android.intent.category.BROWSABLE"
+          Category: "android.intent.category.DEFAULT"
+          Scheme: "qwalletXXXXXXXX"
+
+  Non-Data Actions:
+      android.intent.action.MAIN:
+        9e1090 com.plan.kot32.tomatotime/.activity.SplashActivity filter bb91d89
+          Action: "android.intent.action.MAIN"
+          Category: "android.intent.category.LAUNCHER"
+        f3e289a com.plan.kot32.tomatotime/.activity.SplashWithHideActivity filter ef265cb
+          Action: "android.intent.action.MAIN"
+          Category: "android.intent.category.LAUNCHER"
+      android.appwidget.action.APPWIDGET_CONFIGURE:
+        f463466 com.plan.kot32.tomatotime/.widget.futuretaskwidget.FutureTaskWidgetConfigureActivity filter 1bf93a7
+          Action: "android.appwidget.action.APPWIDGET_CONFIGURE"
+        7b8f054 com.plan.kot32.tomatotime/.widget.wisdomwidget.WisdomConfigureActivity filter 7f01bfd
+          Action: "android.appwidget.action.APPWIDGET_CONFIGURE"
+        c7130f2 com.plan.kot32.tomatotime/.widget.collectionwidget.CollectionWidgetConfigureActivity filter 647c343
+          Action: "android.appwidget.action.APPWIDGET_CONFIGURE"
+
+Receiver Resolver Table:
+  Schemes:
+      file:
+        534b21c com.plan.kot32.tomatotime/.remind.keeprunning.OnBootReceiver filter 755fbfa
+          Action: "android.intent.action.MEDIA_MOUNTED"
+          Action: "android.intent.action.MEDIA_UNMOUNTED"
+          Action: "android.intent.action.MEDIA_EJECT"
+          Scheme: "file"
+          mPriority=2147483647, mOrder=0, mHasStaticPartialTypes=false, mHasDynamicPartialTypes=false
+
+  Non-Data Actions:
+      com.plan.kot32.tomatotime.ACTION_NOTIFICATION_CLICKED:
+        2debdc0 com.plan.kot32.tomatotime/.widget.feedback.MyFeedBackBroadcastReceiver filter 9277af9
+          Action: "com.plan.kot32.tomatotime.ACTION_NOTIFICATION_CLICKED"
+      android.intent.action.LOCKED_BOOT_COMPLETED:
+        534b21c com.plan.kot32.tomatotime/.remind.keeprunning.OnBootReceiver filter 35c8e25
+          Action: "android.intent.action.BOOT_COMPLETED"
+          Action: "android.intent.action.LOCKED_BOOT_COMPLETED"
+          Category: "android.intent.category.HOME"
+          mPriority=2147483647, mOrder=0, mHasStaticPartialTypes=false, mHasDynamicPartialTypes=false
+      android.intent.action.BOOT_COMPLETED:
+        534b21c com.plan.kot32.tomatotime/.remind.keeprunning.OnBootReceiver filter 35c8e25
+          Action: "android.intent.action.BOOT_COMPLETED"
+          Action: "android.intent.action.LOCKED_BOOT_COMPLETED"
+          Category: "android.intent.category.HOME"
+          mPriority=2147483647, mOrder=0, mHasStaticPartialTypes=false, mHasDynamicPartialTypes=false
+      com.xiaomi.push.PING_TIMER:
+        4ece7a1 com.plan.kot32.tomatotime/com.xiaomi.push.service.receivers.PingReceiver filter ef7ddc6
+          Action: "com.xiaomi.push.PING_TIMER"
+      android.appwidget.action.APPWIDGET_UPDATE:
+        2dd6a3e com.plan.kot32.tomatotime/.widget.heatmapwidget.HeatMapAppWidget filter 899509f
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+        9d1f5ec com.plan.kot32.tomatotime/.widget.weeksummary.WeekSummaryWidget filter 7dbcdb5
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+        41ec4a com.plan.kot32.tomatotime/.widget.todowidget.ToDoListWidget filter d4c57bb
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+        1de84d8 com.plan.kot32.tomatotime/.widget.clockonwidget.ClockOnWidget filter f489031
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+        4ba8316 com.plan.kot32.tomatotime/.widget.collectionwidget.CollectionWidget filter 5eb497
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+        7231684 com.plan.kot32.tomatotime/.widget.futuretasklistwidget.FutureTaskListWidget filter 8e4fe6d
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+        453baa2 com.plan.kot32.tomatotime/.widget.futuretaskwidget.FutureTaskWidget filter 5d00333
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+        6fd16f0 com.plan.kot32.tomatotime/.widget.wisdomwidget.WisdomWidget filter 4601469
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+        556deee com.plan.kot32.tomatotime/.widget.icon.IconWidget filter 7fd9f8f
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+        fbea5ab com.plan.kot32.tomatotime/.widget.lockwidget.LockWidget filter 7e8d408
+          Action: "android.appwidget.action.APPWIDGET_UPDATE"
+
+Service Resolver Table:
+  Non-Data Actions:
+      android.service.notification.NotificationListenerService:
+        23ff187 com.plan.kot32.tomatotime/.remind.keeprunning.notify.BlockNotifyService filter 63b28b4 permission android.permission.BIND_NOTIFICATION_LISTENER_SERVICE
+          Action: "android.service.notification.NotificationListenerService"
+      android.accessibilityservice.AccessibilityService:
+        ccf5cdd com.plan.kot32.tomatotime/.remind.keeprunning.MyAccessibilityService filter 2841052 permission android.permission.BIND_ACCESSIBILITY_SERVICE
+          Action: "android.accessibilityservice.AccessibilityService"
+      android.service.wallpaper.WallpaperService:
+        a01f23 com.plan.kot32.tomatotime/.remind.keeprunning.KeepRunningWallpaperService filter 5bc1c20 permission android.permission.BIND_WALLPAPER
+          Action: "android.service.wallpaper.WallpaperService"
+
+Permissions:
+  Permission [com.plan.kot32.tomatotime.permission.MIPUSH_RECEIVE] (8c4fd4b):
+    sourcePackage=com.plan.kot32.tomatotime
+    uid=10154 gids=null type=0 prot=signature
+    perm=Permission{40ee328 com.plan.kot32.tomatotime.permission.MIPUSH_RECEIVE}
+
+Registered ContentProviders:
+  com.plan.kot32.tomatotime/com.meiqia.meiqiasdk.util.SafeProvider:
+    Provider{c7d1841 com.plan.kot32.tomatotime/com.meiqia.meiqiasdk.util.SafeProvider}
+  com.plan.kot32.tomatotime/com.meiqia.meiqiasdk.util.MQFileProvider:
+    Provider{1ed51e6 com.plan.kot32.tomatotime/com.meiqia.meiqiasdk.util.MQFileProvider}
+  com.plan.kot32.tomatotime/com.meiqia.core.MQInitializeContentProvider:
+    Provider{ee42327 com.plan.kot32.tomatotime/com.meiqia.core.MQInitializeContentProvider}
+  com.plan.kot32.tomatotime/cn.bmob.v3.util.BmobContentProvider:
+    Provider{10309d4 com.plan.kot32.tomatotime/cn.bmob.v3.util.BmobContentProvider}
+
+ContentProvider Authorities:
+  [com.plan.kot32.tomatotime.BmobContentProvider]:
+    Provider{10309d4 com.plan.kot32.tomatotime/cn.bmob.v3.util.BmobContentProvider}
+      applicationInfo=ApplicationInfo{702f815 com.plan.kot32.tomatotime}
+  [com.plan.kot32.tomatotime.MQInitializeContentProvider]:
+    Provider{ee42327 com.plan.kot32.tomatotime/com.meiqia.core.MQInitializeContentProvider}
+      applicationInfo=ApplicationInfo{918372a com.plan.kot32.tomatotime}
+  [com.plan.kot32.tomatotime.fileProvider]:
+    Provider{c7d1841 com.plan.kot32.tomatotime/com.meiqia.meiqiasdk.util.SafeProvider}
+      applicationInfo=ApplicationInfo{49a791b com.plan.kot32.tomatotime}
+
+Key Set Manager:
+  [com.plan.kot32.tomatotime]
+      Signing KeySets: 36
+
+Packages:
+  Package [com.plan.kot32.tomatotime] (c70ef40):
+    userId=10154
+    pkg=Package{7b8e79 com.plan.kot32.tomatotime}
+    codePath=/data/app/~~65FfnZ1yQjL_cHarWiviOA==/com.plan.kot32.tomatotime-eraROl5JIrY9FpE7kSN6pQ==
+    resourcePath=/data/app/~~65FfnZ1yQjL_cHarWiviOA==/com.plan.kot32.tomatotime-eraROl5JIrY9FpE7kSN6pQ==
+    legacyNativeLibraryDir=/data/app/~~65FfnZ1yQjL_cHarWiviOA==/com.plan.kot32.tomatotime-eraROl5JIrY9FpE7kSN6pQ==/lib
+    primaryCpuAbi=x86
+    secondaryCpuAbi=null
+    versionCode=921 minSdk=23 targetSdk=30
+    versionName=10.2.9.390
+    splits=[base]
+    apkSigningVersion=2
+    applicationInfo=ApplicationInfo{7b8e79 com.plan.kot32.tomatotime}
+    flags=[ HAS_CODE ALLOW_CLEAR_USER_DATA ALLOW_BACKUP LARGE_HEAP ]
+    privateFlags=[ PRIVATE_FLAG_ACTIVITIES_RESIZE_MODE_UNRESIZEABLE ALLOW_AUDIO_PLAYBACK_CAPTURE PRIVATE_FLAG_REQUEST_LEGACY_EXTERNAL_STORAGE PRIVATE_FLAG_ALLOW_NATIVE_HEAP_POINTER_TAGGING ]
+    forceQueryable=false
+    dataDir=/data/user/0/com.plan.kot32.tomatotime
+    supportsScreens=[small, medium, large, xlarge, resizeable, anyDensity]
+    usesOptionalLibraries:
+      org.apache.http.legacy
+    usesLibraryFiles:
+      /system/framework/org.apache.http.legacy.jar
+    timeStamp=2026-06-09 19:44:51
+    firstInstallTime=2026-06-09 19:44:53
+    lastUpdateTime=2026-06-09 19:44:53
+    signatures=PackageSignatures{49ab7be version:2, signatures:[879b0457], past signatures:[]}
+    installPermissionsFixed=true
+    pkgFlags=[ HAS_CODE ALLOW_CLEAR_USER_DATA ALLOW_BACKUP LARGE_HEAP ]
+    declared permissions:
+      com.plan.kot32.tomatotime.permission.MIPUSH_RECEIVE: prot=signature, INSTALLED
+    requested permissions:
+      android.permission.VIBRATE
+      android.permission.INTERNET
+      android.permission.ACCESS_NETWORK_STATE
+      android.permission.WAKE_LOCK
+      android.permission.ACCESS_WIFI_STATE
+      android.permission.QUERY_ALL_PACKAGES
+      android.permission.FOREGROUND_SERVICE
+      android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+      android.permission.SYSTEM_ALERT_WINDOW
+      android.permission.SYSTEM_OVERLAY_WINDOW
+      android.permission.REQUEST_INSTALL_PACKAGES
+      android.permission.RECEIVE_BOOT_COMPLETED
+      android.permission.SET_WALLPAPER
+      oplus.ocs.wearengine.permission.P2P_DATA_EXCHANGE
+      oplus.ocs.wearengine.permission.P2P_DEVICE_INFO
+      com.plan.kot32.tomatotime.permission.MIPUSH_RECEIVE
+      android.permission.PACKAGE_USAGE_STATS
+      android.permission.POST_NOTIFICATIONS
+      com.google.android.gms.permission.AD_ID
+    install permissions:
+      android.permission.SYSTEM_ALERT_WINDOW: granted=true
+      android.permission.FOREGROUND_SERVICE: granted=true
+      android.permission.RECEIVE_BOOT_COMPLETED: granted=true
+      android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS: granted=true
+      android.permission.INTERNET: granted=true
+      android.permission.PACKAGE_USAGE_STATS: granted=true
+      android.permission.ACCESS_NETWORK_STATE: granted=true
+      android.permission.SET_WALLPAPER: granted=true
+      android.permission.VIBRATE: granted=true
+      android.permission.ACCESS_WIFI_STATE: granted=true
+      com.plan.kot32.tomatotime.permission.MIPUSH_RECEIVE: granted=true
+      android.permission.QUERY_ALL_PACKAGES: granted=true
+      android.permission.WAKE_LOCK: granted=true
+    User 0: ceDataInode=163846 installed=true hidden=false suspended=false distractionFlags=0 stopped=false notLaunched=false enabled=0 instant=false virtual=false
+    overlay paths:
+      /product/overlay/DisplayCutoutEmulationEmu01/DisplayCutoutEmulationEmu01Overlay.apk
+      gids=[3003]
+      runtime permissions:
+
+Queries:
+  system apps queryable: false
+  queries via package name:
+  queries via intent:
+  queryable via interaction:
+    User 0:
+      [com.android.emulator.multidisplay,com.android.server.telecom,com.android.localtransport,android,com.android.wallpaperbackup,com.android.dynsystem,com.android.keychain,com.android.settings,com.android.providers.settings,com.android.inputdevices,com.android.location.fused]:
+        com.plan.kot32.tomatotime
+      [com.google.android.gms,com.google.android.gsf]:
+        com.plan.kot32.tomatotime
+      com.google.android.webview:
+        com.plan.kot32.tomatotime
+      com.google.android.inputmethod.latin:
+        com.plan.kot32.tomatotime
+      com.plan.kot32.tomatotime:
+        com.google.android.webview
+      io.github.ylimit.droidbotapp:
+        com.plan.kot32.tomatotime
+
+Package Changes:
+  Sequence number=18
+  User 0:
+    seq=3, package=com.android.vending
+    seq=5, package=com.google.android.calendar
+    seq=17, package=com.google.android.gms
+
+
+Dexopt state:
+  [com.plan.kot32.tomatotime]
+    path: /data/app/~~65FfnZ1yQjL_cHarWiviOA==/com.plan.kot32.tomatotime-eraROl5JIrY9FpE7kSN6pQ==/base.apk
+      x86: [status=speed-profile] [reason=install]
+
+
+Compiler stats:
+  [com.plan.kot32.tomatotime]
+    (No recorded stats)
+
+APEX session state:
+
+Active APEX packages:
+
+
+Inactive APEX packages:
+
+
+Factory APEX packages:
+
+

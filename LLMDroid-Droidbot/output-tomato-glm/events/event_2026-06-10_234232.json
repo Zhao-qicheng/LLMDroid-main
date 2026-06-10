@@ -1,0 +1,62 @@
+{
+  "tag": "2026-06-10_234232",
+  "event": {
+    "event_type": "touch",
+    "log_lines": null,
+    "action_type": "CLICK",
+    "logger": "Logger",
+    "_InputEvent__visit_count": 1,
+    "_target": "Widget",
+    "_UIEvent__state": null,
+    "_UIEvent__listener": null,
+    "x": null,
+    "y": null,
+    "view": {
+      "package": "com.plan.kot32.tomatotime",
+      "visible": true,
+      "checkable": false,
+      "child_count": 0,
+      "editable": false,
+      "clickable": true,
+      "is_password": false,
+      "focusable": true,
+      "enabled": true,
+      "content_description": null,
+      "children": [],
+      "focused": false,
+      "bounds": [
+        [
+          268,
+          982
+        ],
+        [
+          438,
+          1034
+        ]
+      ],
+      "resource_id": "com.plan.kot32.tomatotime:id/buydqwdjbkawd",
+      "checked": false,
+      "text": " \u7528\u6237\u534f\u8bae ",
+      "class": "android.widget.TextView",
+      "scrollable": false,
+      "selected": false,
+      "long_clickable": false,
+      "parent": 7,
+      "temp_id": 8,
+      "size": "170*52",
+      "signature": "[class]android.widget.TextView[resource_id]com.plan.kot32.tomatotime:id/buydqwdjbkawd[text] \u7528\u6237\u534f\u8bae [enabled,,]",
+      "view_str": "549afb7d7d87a692704de24a3d84e2f5",
+      "widget": "Widget",
+      "content_free_signature": "[class]android.widget.TextView[resource_id]com.plan.kot32.tomatotime:id/buydqwdjbkawd",
+      "allowed_actions": [
+        "touch"
+      ],
+      "special_attrs": [],
+      "local_id": "2",
+      "desc": "<button bound_box=268,982,438,1034> \u7528\u6237\u534f\u8bae </button>"
+    }
+  },
+  "start_state": "8f676bd1bb997091cffc279053456d49",
+  "stop_state": "6aaf5376f4e2a7278d0f679611e8bf78",
+  "event_str": "TouchEvent(state=8f676bd1bb997091cffc279053456d49, view=549afb7d7d87a692704de24a3d84e2f5(MainActivity/TextView- \u7528\u6237\u534f\u8bae ))"
+}

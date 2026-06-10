@@ -1,0 +1,62 @@
+{
+  "tag": "2026-06-10_234320",
+  "event": {
+    "event_type": "touch",
+    "log_lines": null,
+    "action_type": "CLICK",
+    "logger": "Logger",
+    "_InputEvent__visit_count": 1,
+    "_target": "Widget",
+    "_UIEvent__state": null,
+    "_UIEvent__listener": "ActionListener",
+    "x": null,
+    "y": null,
+    "view": {
+      "package": "com.plan.kot32.tomatotime",
+      "visible": true,
+      "checkable": false,
+      "child_count": 0,
+      "editable": false,
+      "clickable": true,
+      "is_password": false,
+      "focusable": true,
+      "enabled": true,
+      "content_description": null,
+      "children": [],
+      "focused": false,
+      "bounds": [
+        [
+          144,
+          1610
+        ],
+        [
+          523,
+          1726
+        ]
+      ],
+      "resource_id": "com.plan.kot32.tomatotime:id/go_cancel",
+      "checked": false,
+      "text": "\u4e0d\u540c\u610f",
+      "class": "android.widget.TextView",
+      "scrollable": false,
+      "selected": false,
+      "long_clickable": false,
+      "parent": 17,
+      "temp_id": 18,
+      "size": "379*116",
+      "signature": "[class]android.widget.TextView[resource_id]com.plan.kot32.tomatotime:id/go_cancel[text]\u4e0d\u540c\u610f[enabled,,]",
+      "view_str": "a4131c7251af727e5508265776e33bd8",
+      "widget": "Widget",
+      "content_free_signature": "[class]android.widget.TextView[resource_id]com.plan.kot32.tomatotime:id/go_cancel",
+      "allowed_actions": [
+        "touch"
+      ],
+      "special_attrs": [],
+      "local_id": "10",
+      "desc": "<button bound_box=144,1610,523,1726>\u4e0d\u540c\u610f</button>"
+    }
+  },
+  "start_state": "8f676bd1bb997091cffc279053456d49",
+  "stop_state": "8384c4531dea3b51a05536995ae55134",
+  "event_str": "TouchEvent(state=8f676bd1bb997091cffc279053456d49, view=a4131c7251af727e5508265776e33bd8(MainActivity/TextView-\u4e0d\u540c\u610f))"
+}

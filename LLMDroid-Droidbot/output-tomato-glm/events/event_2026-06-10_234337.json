@@ -1,0 +1,56 @@
+{
+  "tag": "2026-06-10_234337",
+  "event": {
+    "event_type": "touch",
+    "log_lines": null,
+    "action_type": "CLICK",
+    "logger": "Logger",
+    "_InputEvent__visit_count": 1,
+    "_target": "Widget",
+    "_UIEvent__state": null,
+    "_UIEvent__listener": "ActionListener",
+    "x": null,
+    "y": null,
+    "view": {
+      "package": "com.plan.kot32.tomatotime",
+      "visible": true,
+      "checkable": false,
+      "child_count": 0,
+      "editable": false,
+      "clickable": false,
+      "is_password": false,
+      "focusable": false,
+      "enabled": true,
+      "content_description": null,
+      "children": [],
+      "focused": false,
+      "bounds": [
+        [
+          0,
+          325
+        ],
+        [
+          1080,
+          333
+        ]
+      ],
+      "resource_id": "com.plan.kot32.tomatotime:id/progressBar1",
+      "checked": false,
+      "text": null,
+      "class": "android.widget.ProgressBar",
+      "scrollable": false,
+      "selected": false,
+      "long_clickable": false,
+      "parent": 5,
+      "temp_id": 9,
+      "size": "1080*8",
+      "signature": "[class]android.widget.ProgressBar[resource_id]com.plan.kot32.tomatotime:id/progressBar1[text]None[enabled,,]",
+      "view_str": "c9ddce258778bb1d75b6451221304186",
+      "widget": "Widget",
+      "content_free_signature": "[class]android.widget.ProgressBar[resource_id]com.plan.kot32.tomatotime:id/progressBar1"
+    }
+  },
+  "start_state": "eb05178f242db2d4e131198cb3a9ecb6",
+  "stop_state": "d1cafb08b2e69356dc446519a0747c1a",
+  "event_str": "TouchEvent(state=eb05178f242db2d4e131198cb3a9ecb6, view=c9ddce258778bb1d75b6451221304186(WebViewActivity/ProgressBar-))"
+}

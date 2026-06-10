@@ -1,0 +1,14 @@
+{
+  "tag": "2026-06-10_034603",
+  "event": {
+    "event_type": "kill_app",
+    "log_lines": null,
+    "action_type": "OTHER",
+    "logger": "Logger",
+    "_InputEvent__visit_count": 0,
+    "stop_intent": "am force-stop com.plan.kot32.tomatotime"
+  },
+  "start_state": "06f2b184680d5f5bf38892b1960dfce7",
+  "stop_state": "06f2b184680d5f5bf38892b1960dfce7",
+  "event_str": "KillAppEvent()"
+}

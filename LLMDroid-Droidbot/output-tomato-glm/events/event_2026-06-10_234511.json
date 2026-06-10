@@ -1,0 +1,62 @@
+{
+  "tag": "2026-06-10_234511",
+  "event": {
+    "event_type": "touch",
+    "log_lines": null,
+    "action_type": "CLICK",
+    "logger": "Logger",
+    "_InputEvent__visit_count": 1,
+    "_target": "Widget",
+    "_UIEvent__state": null,
+    "_UIEvent__listener": "ActionListener",
+    "x": null,
+    "y": null,
+    "view": {
+      "package": "com.plan.kot32.tomatotime",
+      "visible": true,
+      "checkable": false,
+      "child_count": 0,
+      "editable": false,
+      "clickable": false,
+      "is_password": false,
+      "focusable": false,
+      "enabled": true,
+      "content_description": null,
+      "children": [],
+      "focused": false,
+      "bounds": [
+        [
+          28,
+          1120
+        ],
+        [
+          1052,
+          1323
+        ]
+      ],
+      "resource_id": "android:id/message",
+      "checked": false,
+      "text": "\u9875\u9762\u52a0\u8f7d\u5931\u8d25\uff0c\u53ef\u80fd\u662f\u7f51\u7edc\u95ee\u9898\u6216\u8be5\u9875\u9762\u4e0d\u5b58\u5728\n\u9519\u8bef\u7801: -2",
+      "class": "android.widget.TextView",
+      "scrollable": false,
+      "selected": false,
+      "long_clickable": false,
+      "parent": 10,
+      "temp_id": 11,
+      "size": "1024*203",
+      "signature": "[class]android.widget.TextView[resource_id]android:id/message[text]\u9875\u9762\u52a0\u8f7d\u5931\u8d25\uff0c\u53ef\u80fd\u662f\u7f51\u7edc\u95ee\u9898\u6216\u8be5\u9875\u9762\u4e0d\u5b58\u5728\n\u9519\u8bef\u7801: -2[enabled,,]",
+      "view_str": "644a443f929e0403b791a578dc182d14",
+      "widget": "Widget",
+      "content_free_signature": "[class]android.widget.TextView[resource_id]android:id/message",
+      "allowed_actions": [
+        "touch"
+      ],
+      "special_attrs": [],
+      "local_id": "1",
+      "desc": "<p bound_box=28,1120,1052,1323>\u9875\u9762\u52a0\u8f7d\u5931\u8d25\uff0c\u53ef\u80fd\u662f\u7f51\u7edc\u95ee\u9898\u6216\u8be5\u9875\u9762\u4e0d\u5b58\u5728\n\u9519\u8bef\u7801: -2</p>"
+    }
+  },
+  "start_state": "eb05178f242db2d4e131198cb3a9ecb6",
+  "stop_state": "eb05178f242db2d4e131198cb3a9ecb6",
+  "event_str": "TouchEvent(state=eb05178f242db2d4e131198cb3a9ecb6, view=644a443f929e0403b791a578dc182d14(WebViewActivity/TextView-\u9875\u9762\u52a0\u8f7d\u5931\u8d25\uff0c\u53ef\u80fd\u662f))"
+}

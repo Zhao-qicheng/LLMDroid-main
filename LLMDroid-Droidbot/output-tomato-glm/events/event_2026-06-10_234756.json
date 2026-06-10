@@ -1,0 +1,14 @@
+{
+  "tag": "2026-06-10_234756",
+  "event": {
+    "event_type": "intent",
+    "log_lines": null,
+    "action_type": "STOP",
+    "logger": "Logger",
+    "_InputEvent__visit_count": 1,
+    "intent": "am force-stop com.plan.kot32.tomatotime"
+  },
+  "start_state": "1a909704a5e6b3dcfdce6cedc7adc5fd",
+  "stop_state": "f11fbe3b5973bbc9df238f903668187c",
+  "event_str": "IntentEvent(intent='am force-stop com.plan.kot32.tomatotime')"
+}

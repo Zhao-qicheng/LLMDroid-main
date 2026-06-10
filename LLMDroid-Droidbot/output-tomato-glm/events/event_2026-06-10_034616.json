@@ -1,0 +1,14 @@
+{
+  "tag": "2026-06-10_034616",
+  "event": {
+    "event_type": "intent",
+    "log_lines": null,
+    "action_type": "START",
+    "logger": "Logger",
+    "_InputEvent__visit_count": 1,
+    "intent": "am start com.plan.kot32.tomatotime/com.plan.kot32.tomatotime.activity.SplashActivity"
+  },
+  "start_state": "06f2b184680d5f5bf38892b1960dfce7",
+  "stop_state": "a29a6c32b57a05e8eb0c9ce903fca0ad",
+  "event_str": "IntentEvent(intent='am start com.plan.kot32.tomatotime/com.plan.kot32.tomatotime.activity.SplashActivity')"
+}

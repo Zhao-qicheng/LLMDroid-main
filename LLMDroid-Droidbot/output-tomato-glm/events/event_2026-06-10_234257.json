@@ -1,0 +1,62 @@
+{
+  "tag": "2026-06-10_234257",
+  "event": {
+    "event_type": "touch",
+    "log_lines": null,
+    "action_type": "CLICK",
+    "logger": "Logger",
+    "_InputEvent__visit_count": 1,
+    "_target": "Widget",
+    "_UIEvent__state": null,
+    "_UIEvent__listener": "ActionListener",
+    "x": null,
+    "y": null,
+    "view": {
+      "package": "com.plan.kot32.tomatotime",
+      "visible": true,
+      "checkable": false,
+      "child_count": 0,
+      "editable": false,
+      "clickable": true,
+      "is_password": false,
+      "focusable": true,
+      "enabled": true,
+      "content_description": null,
+      "children": [],
+      "focused": false,
+      "bounds": [
+        [
+          221,
+          1048
+        ],
+        [
+          505,
+          1100
+        ]
+      ],
+      "resource_id": "com.plan.kot32.tomatotime:id/wioefnsds",
+      "checked": false,
+      "text": " \u7b2c\u4e09\u65b9\u5171\u4eab\u6e05\u5355 ",
+      "class": "android.widget.TextView",
+      "scrollable": false,
+      "selected": false,
+      "long_clickable": false,
+      "parent": 11,
+      "temp_id": 12,
+      "size": "284*52",
+      "signature": "[class]android.widget.TextView[resource_id]com.plan.kot32.tomatotime:id/wioefnsds[text] \u7b2c\u4e09\u65b9\u5171\u4eab\u6e05\u5355 [enabled,,]",
+      "view_str": "dff9f4d398e551857d16f1e33dce499a",
+      "widget": "Widget",
+      "content_free_signature": "[class]android.widget.TextView[resource_id]com.plan.kot32.tomatotime:id/wioefnsds",
+      "allowed_actions": [
+        "touch"
+      ],
+      "special_attrs": [],
+      "local_id": "5",
+      "desc": "<button bound_box=221,1048,505,1100> \u7b2c\u4e09\u65b9\u5171\u4eab\u6e05\u5355 </button>"
+    }
+  },
+  "start_state": "8f676bd1bb997091cffc279053456d49",
+  "stop_state": "5639037fd81a570bdedbdfadb2ec409f",
+  "event_str": "TouchEvent(state=8f676bd1bb997091cffc279053456d49, view=dff9f4d398e551857d16f1e33dce499a(MainActivity/TextView- \u7b2c\u4e09\u65b9\u5171\u4eab\u6e05\u5355 ))"
+}

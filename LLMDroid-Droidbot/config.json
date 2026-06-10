@@ -1,0 +1,7 @@
+{
+  "AppName": "Tomato ToDo",
+  "Description": "Tomato ToDo is a productivity app for managing tasks, focus sessions, Pomodoro timers, reminders, statistics, and study or work plans. During testing, prioritize creating tasks, starting and stopping focus timers, checking task lists, editing task details, navigating statistics, settings, reminders, and account-related pages.",
+  "ApiKey": "sk-a8fcc94497e94f999fadded6477fc9a4",
+  "BaseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  "Model": "glm-5.1"
+}

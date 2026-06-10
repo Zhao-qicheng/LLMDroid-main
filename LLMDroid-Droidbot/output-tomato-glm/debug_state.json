@@ -1,0 +1,171 @@
+{
+    "Cluster0": {
+        "Overview": "",
+        "Function List": {},
+        "id": 0,
+        "root": "State0",
+        "states": [
+            [
+                0
+            ]
+        ]
+    },
+    "Cluster1": {
+        "Overview": "Privacy policy agreement screen detailing app permissions and providing links to full policies, requiring user consent to proceed.",
+        "Function List": {
+            "agree to terms and proceed": 0,
+            "disagree and exit": 0,
+            "navigate to User Agreement": 0,
+            "navigate to Privacy Agreement": 0,
+            "navigate to Third-party Sharing List": 0,
+            "navigate to Privacy Agreement Summary": 0,
+            "scroll agreement text": 1
+        },
+        "id": 1,
+        "root": "State1",
+        "states": [
+            [
+                1
+            ]
+        ]
+    },
+    "Cluster2": {
+        "Overview": "Displays the User Agreement (用户协议) in a WebView, allowing users to read the terms and navigate back.",
+        "Function List": {
+            "navigate back": 0
+        },
+        "id": 2,
+        "root": "State2",
+        "states": [
+            [
+                5,
+                3,
+                11,
+                4,
+                7,
+                9,
+                10,
+                2
+            ]
+        ]
+    },
+    "Cluster3": {
+        "Overview": "Privacy agreement dialog prompting users to read and accept terms, use basic mode, or decline before accessing the app.",
+        "Function List": {
+            "agree to terms": 7,
+            "use basic functions only": 6,
+            "view user agreement": 0,
+            "view privacy agreement": 0,
+            "view third-party sharing list": 0,
+            "view privacy agreement summary": 0,
+            "cancel and do not use": 0
+        },
+        "id": 3,
+        "root": "State6",
+        "states": [
+            [
+                6
+            ]
+        ]
+    },
+    "Cluster4": {
+        "Overview": "Error dialog indicating a web page load failure, providing options to go back or retry loading.",
+        "Function List": {
+            "go back": 0,
+            "retry loading": 0
+        },
+        "id": 4,
+        "root": "State8",
+        "states": [
+            [
+                8
+            ]
+        ]
+    },
+    "Cluster5": {
+        "Overview": "",
+        "Function List": {},
+        "id": 5,
+        "root": "State12",
+        "states": [
+            [
+                19,
+                12
+            ]
+        ]
+    },
+    "Cluster6": {
+        "Overview": "System UI not responding dialog, offering options to close the app or wait for recovery.",
+        "Function List": {
+            "close the app": 0,
+            "wait for system UI": 1
+        },
+        "id": 6,
+        "root": "State13",
+        "states": [
+            [
+                13
+            ]
+        ]
+    },
+    "Cluster7": {
+        "Overview": "Theme color selection page prompting users to choose a preferred color scheme for the app interface.",
+        "Function List": {
+            "select theme color": 0
+        },
+        "id": 7,
+        "root": "State14",
+        "states": [
+            [
+                15,
+                14
+            ]
+        ]
+    },
+    "Cluster8": {
+        "Overview": "A dialog prompting the user to view beginner help, with options to view or cancel.",
+        "Function List": {
+            "view beginner help": 2,
+            "cancel help dialog": 0
+        },
+        "id": 8,
+        "root": "State16",
+        "states": [
+            [
+                16
+            ]
+        ]
+    },
+    "Cluster9": {
+        "Overview": "A tip dialog on MainActivity with a checkbox to acknowledge viewing the upper right menu anytime.",
+        "Function List": {
+            "acknowledge tip": 0
+        },
+        "id": 9,
+        "root": "State17",
+        "states": [
+            [
+                17
+            ]
+        ]
+    },
+    "Cluster10": {
+        "Overview": "Quick menu popup providing navigation to features like Focus Records, Study Room, Future Countdown, and access to Settings and Themes.",
+        "Function List": {
+            "navigate to 'Focus Records'": 0,
+            "navigate to 'Study Room'": 0,
+            "navigate to 'Future Countdown'": 0,
+            "open settings": 4,
+            "open theme settings": 3,
+            "edit sort": 2,
+            "view quick help": 1
+        },
+        "id": 10,
+        "root": "State18",
+        "states": [
+            [
+                18
+            ]
+        ]
+    }
+}

@@ -1,0 +1,62 @@
+{
+  "tag": "2026-06-10_234458",
+  "event": {
+    "event_type": "touch",
+    "log_lines": null,
+    "action_type": "CLICK",
+    "logger": "Logger",
+    "_InputEvent__visit_count": 1,
+    "_target": "Widget",
+    "_UIEvent__state": null,
+    "_UIEvent__listener": "ActionListener",
+    "x": null,
+    "y": null,
+    "view": {
+      "package": "com.plan.kot32.tomatotime",
+      "visible": true,
+      "checkable": false,
+      "child_count": 0,
+      "editable": false,
+      "clickable": false,
+      "is_password": false,
+      "focusable": false,
+      "enabled": true,
+      "content_description": null,
+      "children": [],
+      "focused": false,
+      "bounds": [
+        [
+          94,
+          1024
+        ],
+        [
+          986,
+          1098
+        ]
+      ],
+      "resource_id": "android:id/alertTitle",
+      "checked": false,
+      "text": "\u52a0\u8f7d\u9519\u8bef",
+      "class": "android.widget.TextView",
+      "scrollable": false,
+      "selected": false,
+      "long_clickable": false,
+      "parent": 5,
+      "temp_id": 6,
+      "size": "892*74",
+      "signature": "[class]android.widget.TextView[resource_id]android:id/alertTitle[text]\u52a0\u8f7d\u9519\u8bef[enabled,,]",
+      "view_str": "6bcad8c8fdd5f1c7a6a8725786acc9e2",
+      "widget": "Widget",
+      "content_free_signature": "[class]android.widget.TextView[resource_id]android:id/alertTitle",
+      "allowed_actions": [
+        "touch"
+      ],
+      "special_attrs": [],
+      "local_id": "0",
+      "desc": "<p bound_box=94,1024,986,1098>\u52a0\u8f7d\u9519\u8bef</p>"
+    }
+  },
+  "start_state": "eb05178f242db2d4e131198cb3a9ecb6",
+  "stop_state": "eb05178f242db2d4e131198cb3a9ecb6",
+  "event_str": "TouchEvent(state=eb05178f242db2d4e131198cb3a9ecb6, view=6bcad8c8fdd5f1c7a6a8725786acc9e2(WebViewActivity/TextView-\u52a0\u8f7d\u9519\u8bef))"
+}

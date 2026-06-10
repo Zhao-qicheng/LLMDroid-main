@@ -1,0 +1,56 @@
+{
+  "tag": "2026-06-10_234555",
+  "event": {
+    "event_type": "touch",
+    "log_lines": null,
+    "action_type": "CLICK",
+    "logger": "Logger",
+    "_InputEvent__visit_count": 1,
+    "_target": "Widget",
+    "_UIEvent__state": null,
+    "_UIEvent__listener": null,
+    "x": null,
+    "y": null,
+    "view": {
+      "package": "com.plan.kot32.tomatotime",
+      "visible": true,
+      "checkable": false,
+      "child_count": 0,
+      "editable": false,
+      "clickable": true,
+      "is_password": false,
+      "focusable": true,
+      "enabled": true,
+      "content_description": null,
+      "children": [],
+      "focused": false,
+      "bounds": [
+        [
+          864,
+          974
+        ],
+        [
+          925,
+          1035
+        ]
+      ],
+      "resource_id": "com.plan.kot32.tomatotime:id/cancel",
+      "checked": false,
+      "text": null,
+      "class": "android.widget.Button",
+      "scrollable": false,
+      "selected": false,
+      "long_clickable": false,
+      "parent": 4,
+      "temp_id": 6,
+      "size": "61*61",
+      "signature": "[class]android.widget.Button[resource_id]com.plan.kot32.tomatotime:id/cancel[text]None[enabled,,]",
+      "view_str": "060744ea4728bd776c734a15b818f8b0",
+      "widget": "Widget",
+      "content_free_signature": "[class]android.widget.Button[resource_id]com.plan.kot32.tomatotime:id/cancel"
+    }
+  },
+  "start_state": "988e804dcf5fe1e7d25e657da1e9d290",
+  "stop_state": "55cd33761a5d8984aa61f45eb5065660",
+  "event_str": "TouchEvent(state=988e804dcf5fe1e7d25e657da1e9d290, view=060744ea4728bd776c734a15b818f8b0(MainActivity/Button-))"
+}

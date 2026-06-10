@@ -1,0 +1,56 @@
+{
+  "tag": "2026-06-10_234505",
+  "event": {
+    "event_type": "touch",
+    "log_lines": null,
+    "action_type": "CLICK",
+    "logger": "Logger",
+    "_InputEvent__visit_count": 1,
+    "_target": "Widget",
+    "_UIEvent__state": null,
+    "_UIEvent__listener": "ActionListener",
+    "x": null,
+    "y": null,
+    "view": {
+      "package": "com.plan.kot32.tomatotime",
+      "visible": true,
+      "checkable": false,
+      "child_count": 0,
+      "editable": false,
+      "clickable": false,
+      "is_password": false,
+      "focusable": false,
+      "enabled": true,
+      "content_description": null,
+      "children": [],
+      "focused": false,
+      "bounds": [
+        [
+          28,
+          1098
+        ],
+        [
+          1052,
+          1120
+        ]
+      ],
+      "resource_id": "android:id/titleDividerNoCustom",
+      "checked": false,
+      "text": null,
+      "class": "android.view.View",
+      "scrollable": false,
+      "selected": false,
+      "long_clickable": false,
+      "parent": 4,
+      "temp_id": 7,
+      "size": "1024*22",
+      "signature": "[class]android.view.View[resource_id]android:id/titleDividerNoCustom[text]None[enabled,,]",
+      "view_str": "305eff24d335e5a44d68e99c1c589373",
+      "widget": "Widget",
+      "content_free_signature": "[class]android.view.View[resource_id]android:id/titleDividerNoCustom"
+    }
+  },
+  "start_state": "eb05178f242db2d4e131198cb3a9ecb6",
+  "stop_state": "eb05178f242db2d4e131198cb3a9ecb6",
+  "event_str": "TouchEvent(state=eb05178f242db2d4e131198cb3a9ecb6, view=305eff24d335e5a44d68e99c1c589373(WebViewActivity/View-))"
+}

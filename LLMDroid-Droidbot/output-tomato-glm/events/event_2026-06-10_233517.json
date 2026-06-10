@@ -1,0 +1,62 @@
+{
+  "tag": "2026-06-10_233517",
+  "event": {
+    "event_type": "touch",
+    "log_lines": null,
+    "action_type": "CLICK",
+    "logger": "Logger",
+    "_InputEvent__visit_count": 1,
+    "_target": "Widget",
+    "_UIEvent__state": null,
+    "_UIEvent__listener": null,
+    "x": null,
+    "y": null,
+    "view": {
+      "package": "com.plan.kot32.tomatotime",
+      "visible": true,
+      "checkable": false,
+      "child_count": 0,
+      "editable": false,
+      "clickable": true,
+      "is_password": false,
+      "focusable": true,
+      "enabled": true,
+      "content_description": null,
+      "children": [],
+      "focused": false,
+      "bounds": [
+        [
+          667,
+          1334
+        ],
+        [
+          843,
+          1466
+        ]
+      ],
+      "resource_id": "android:id/button2",
+      "checked": false,
+      "text": "\u8fd4\u56de",
+      "class": "android.widget.Button",
+      "scrollable": false,
+      "selected": false,
+      "long_clickable": false,
+      "parent": 13,
+      "temp_id": 14,
+      "size": "176*132",
+      "signature": "[class]android.widget.Button[resource_id]android:id/button2[text]\u8fd4\u56de[enabled,,]",
+      "view_str": "cac740df1fce760ed073b5e99241e999",
+      "widget": "Widget",
+      "content_free_signature": "[class]android.widget.Button[resource_id]android:id/button2",
+      "allowed_actions": [
+        "touch"
+      ],
+      "special_attrs": [],
+      "local_id": "2",
+      "desc": "<button bound_box=667,1334,843,1466>\u8fd4\u56de</button>"
+    }
+  },
+  "start_state": "eb05178f242db2d4e131198cb3a9ecb6",
+  "stop_state": "be28824fe9ef3b5b9ed0c1c79632ebd9",
+  "event_str": "TouchEvent(state=eb05178f242db2d4e131198cb3a9ecb6, view=cac740df1fce760ed073b5e99241e999(WebViewActivity/Button-\u8fd4\u56de))"
+}

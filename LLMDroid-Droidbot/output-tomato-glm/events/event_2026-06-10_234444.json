@@ -1,0 +1,62 @@
+{
+  "tag": "2026-06-10_234444",
+  "event": {
+    "event_type": "touch",
+    "log_lines": null,
+    "action_type": "CLICK",
+    "logger": "Logger",
+    "_InputEvent__visit_count": 1,
+    "_target": "Widget",
+    "_UIEvent__state": null,
+    "_UIEvent__listener": "ActionListener",
+    "x": null,
+    "y": null,
+    "view": {
+      "package": "com.plan.kot32.tomatotime",
+      "visible": true,
+      "checkable": false,
+      "child_count": 0,
+      "editable": false,
+      "clickable": true,
+      "is_password": false,
+      "focusable": true,
+      "enabled": true,
+      "content_description": null,
+      "children": [],
+      "focused": false,
+      "bounds": [
+        [
+          615,
+          1064
+        ],
+        [
+          861,
+          1116
+        ]
+      ],
+      "resource_id": "com.plan.kot32.tomatotime:id/iodrgnkle",
+      "checked": false,
+      "text": " \u9690\u79c1\u534f\u8bae\u6458\u8981 ",
+      "class": "android.widget.TextView",
+      "scrollable": false,
+      "selected": false,
+      "long_clickable": false,
+      "parent": 11,
+      "temp_id": 14,
+      "size": "246*52",
+      "signature": "[class]android.widget.TextView[resource_id]com.plan.kot32.tomatotime:id/iodrgnkle[text] \u9690\u79c1\u534f\u8bae\u6458\u8981 [enabled,,]",
+      "view_str": "2d7245080e54028bd70c15440582b05d",
+      "widget": "Widget",
+      "content_free_signature": "[class]android.widget.TextView[resource_id]com.plan.kot32.tomatotime:id/iodrgnkle",
+      "allowed_actions": [
+        "touch"
+      ],
+      "special_attrs": [],
+      "local_id": "7",
+      "desc": "<button bound_box=615,1064,861,1116> \u9690\u79c1\u534f\u8bae\u6458\u8981 </button>"
+    }
+  },
+  "start_state": "8384c4531dea3b51a05536995ae55134",
+  "stop_state": "69293c907132657d6b70a6af6f424343",
+  "event_str": "TouchEvent(state=8384c4531dea3b51a05536995ae55134, view=2d7245080e54028bd70c15440582b05d(MainActivity/TextView- \u9690\u79c1\u534f\u8bae\u6458\u8981 ))"
+}

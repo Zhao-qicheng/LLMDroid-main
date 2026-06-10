@@ -1,0 +1,59 @@
+{
+  "tag": "2026-06-10_234550",
+  "event": {
+    "event_type": "touch",
+    "log_lines": null,
+    "action_type": "CLICK",
+    "logger": "Logger",
+    "_InputEvent__visit_count": 1,
+    "_target": "Widget",
+    "_UIEvent__state": null,
+    "_UIEvent__listener": null,
+    "x": null,
+    "y": null,
+    "view": {
+      "package": "com.plan.kot32.tomatotime",
+      "visible": true,
+      "checkable": false,
+      "child_count": 2,
+      "editable": false,
+      "clickable": true,
+      "is_password": false,
+      "focusable": true,
+      "enabled": true,
+      "content_description": null,
+      "children": [
+        9,
+        10
+      ],
+      "focused": false,
+      "bounds": [
+        [
+          155,
+          1108
+        ],
+        [
+          292,
+          1191
+        ]
+      ],
+      "resource_id": "com.plan.kot32.tomatotime:id/color1",
+      "checked": false,
+      "text": null,
+      "class": "android.widget.LinearLayout",
+      "scrollable": false,
+      "selected": false,
+      "long_clickable": false,
+      "parent": 7,
+      "temp_id": 8,
+      "size": "137*83",
+      "signature": "[class]android.widget.LinearLayout[resource_id]com.plan.kot32.tomatotime:id/color1[text]None[enabled,,]",
+      "view_str": "482a9808090e1cf74716112f2efa8303",
+      "widget": "Widget",
+      "content_free_signature": "[class]android.widget.LinearLayout[resource_id]com.plan.kot32.tomatotime:id/color1"
+    }
+  },
+  "start_state": "6f0929414a5e8c3f11a958222a385a63",
+  "stop_state": "988e804dcf5fe1e7d25e657da1e9d290",
+  "event_str": "TouchEvent(state=6f0929414a5e8c3f11a958222a385a63, view=482a9808090e1cf74716112f2efa8303(MainActivity/LinearLayout-))"
+}
