@@ -434,7 +434,8 @@ class UtgBasedInputPolicy(InputPolicy):
         self.logger.info("Get ready to switch to EXPLORE mode")
         self.__current_mode = Mode.EXPLORE
         # check should wait related
-        self.__cv_monitor.clear()
+        if self.__cv_monitor:
+            self.__cv_monitor.clear()
         # reset time
         self.__next_stage_time = time.time() + self.__GUIDANCE_INTERVAL
         # reset executed steps

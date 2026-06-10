@@ -1,5 +1,5 @@
 # 文件作用：
-# 1. 定义 DroidBot 支持的输入策略名称常量，如 monkey、dfs_greedy、bfs_naive、manual、replay 等。
+# 1. 定义 DroidBot 支持的输入策略名称常量，如 dfs_greedy(贪心策略优先，默认)、bfs_greedy(贪心广度优先)、monkey(调用Android系统的Monkey,随机事件)、bfs_naive(朴素广度优先)、manual(人工操作模式)、replay(回放已有DroidBot输出目录中的事件)、none(只启动App，不自动发送事件) 等。
 # 2. 提供 InputPolicy 基类，约束具体策略需要实现 start/generate_event 等流程。
 # 3. 是 InputManager 根据命令行 policy_name 创建具体策略对象的依据。
 import sys

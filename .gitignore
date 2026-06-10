@@ -1,0 +1,5 @@
+input_apk/
+LLMDroid-Droidbot/output-tomato-glm/
+LLMDroid-Droidbot/runtime.log
+__pycache__/
+*.pyc

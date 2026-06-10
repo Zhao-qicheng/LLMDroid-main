@@ -26,11 +26,3 @@ add device 13: /dev/input/event6
   name:     "virtio_input_multi_touch_5"
 add device 14: /dev/input/event3
   name:     "virtio_input_multi_touch_2"
-[    6656.730704] /dev/input/event2: EV_ABS       ABS_MT_TRACKING_ID   00000000            
-[    6656.730704] /dev/input/event2: EV_ABS       ABS_MT_POSITION_X    00002480            
-[    6656.730704] /dev/input/event2: EV_ABS       ABS_MT_POSITION_Y    00004d87            
-[    6656.730704] /dev/input/event2: EV_ABS       ABS_MT_PRESSURE      00000400            
-[    6656.730704] /dev/input/event2: EV_SYN       SYN_REPORT           00000000            
-[    6656.847215] /dev/input/event2: EV_ABS       ABS_MT_PRESSURE      00000000            
-[    6656.847215] /dev/input/event2: EV_ABS       ABS_MT_TRACKING_ID   ffffffff            
-[    6656.847215] /dev/input/event2: EV_SYN       SYN_REPORT           00000000            

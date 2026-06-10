@@ -11,56 +11,112 @@
         ]
     },
     "Cluster1": {
-        "Overview": "Privacy policy agreement screen detailing app permissions and providing links to full policies, requiring user consent to proceed.",
+        "Overview": "Main to-do list page displaying tasks with focus timers, and navigation to other app sections.",
         "Function List": {
-            "agree to terms and proceed": 0,
-            "disagree and exit": 0,
-            "navigate to User Agreement": 0,
-            "navigate to Privacy Agreement": 0,
-            "navigate to Third-party Sharing List": 0,
-            "navigate to Privacy Agreement Summary": 0,
-            "scroll agreement text": 1
+            "navigate to '待办集'": 0,
+            "navigate to '锁机'": 0,
+            "navigate to '统计数据'": 16,
+            "navigate to '我的'": 15,
+            "navigate to '待办'": 14,
+            "add task": 13,
+            "open menu": 12,
+            "start Study Mode": 0,
+            "start focus timer 1": 10,
+            "start focus timer 2": 9,
+            "start focus timer 3": 8,
+            "start focus timer 4": 7,
+            "share": 6,
+            "view task 1 details": 5,
+            "view task 2 details": 4,
+            "view task 3 details": 3,
+            "view task 4 details": 2,
+            "toggle morning list": 1
         },
         "id": 1,
         "root": "State1",
         "states": [
             [
-                1
+                1,
+                15
             ]
         ]
     },
     "Cluster2": {
-        "Overview": "Displays the User Agreement (用户协议) in a WebView, allowing users to read the terms and navigate back.",
+        "Overview": "Settings page for Xueba (Scholar) mode, configuring app blocking, strict focus, notification interception, and whitelisting.",
         "Function List": {
-            "navigate back": 0
+            "navigate to whitelist settings": 0,
+            "navigate to enforcement settings": 0,
+            "view xueba help": 0,
+            "view notification interception help": 0
         },
         "id": 2,
         "root": "State2",
         "states": [
             [
-                5,
-                3,
-                11,
-                4,
-                7,
-                9,
-                10,
                 2
             ]
         ]
     },
     "Cluster3": {
-        "Overview": "Privacy agreement dialog prompting users to read and accept terms, use basic mode, or decline before accessing the app.",
+        "Overview": "Help page for Scholar Mode, providing FAQs on features like strict mode, notification blocking, whitelists, and app hiding.",
         "Function List": {
-            "agree to terms": 7,
-            "use basic functions only": 6,
-            "view user agreement": 0,
-            "view privacy agreement": 0,
-            "view third-party sharing list": 0,
-            "view privacy agreement summary": 0,
-            "cancel and do not use": 0
+            "close help page": 0,
+            "view help on Scholar and Strict Mode": 7,
+            "view help on Notification Blocking": 6,
+            "view help on Hiding in Multitask List": 5,
+            "view help on App Blocking Issues": 4,
+            "view help on Timed Scholar Mode": 3,
+            "view help on Whitelists": 2,
+            "view help on Enforceability Options": 1
         },
         "id": 3,
+        "root": "State3",
+        "states": [
+            [
+                3
+            ]
+        ]
+    },
+    "Cluster4": {
+        "Overview": "Help page for notification blocking, displaying FAQs and a close button.",
+        "Function List": {
+            "close help page": 0,
+            "view FAQ 'What is notification blocking'": 3,
+            "view FAQ 'Blocking fails'": 2,
+            "view FAQ 'Vibrations or sounds persist'": 1
+        },
+        "id": 4,
+        "root": "State4",
+        "states": [
+            [
+                4
+            ]
+        ]
+    },
+    "Cluster5": {
+        "Overview": "Settings page for Xueba mode mandatory options, configuring strict focus lock features to prevent app closure or uninstallation.",
+        "Function List": {
+            "open wallpaper reinforcement setting": 0,
+            "open auto prevent kill setting": 0,
+            "open hide desktop icon setting": 0,
+            "view xueba help": 0,
+            "view hide in recent help": 0
+        },
+        "id": 5,
+        "root": "State5",
+        "states": [
+            [
+                5
+            ]
+        ]
+    },
+    "Cluster6": {
+        "Overview": "Configuration page for Xueba mode, providing checkboxes to toggle help for mandatory options and general usage.",
+        "Function List": {
+            "toggle help for mandatory options": 0,
+            "toggle help for all usage": 1
+        },
+        "id": 6,
         "root": "State6",
         "states": [
             [
@@ -68,103 +124,303 @@
             ]
         ]
     },
-    "Cluster4": {
-        "Overview": "Error dialog indicating a web page load failure, providing options to go back or retry loading.",
-        "Function List": {
-            "go back": 0,
-            "retry loading": 0
-        },
-        "id": 4,
-        "root": "State8",
-        "states": [
-            [
-                8
-            ]
-        ]
-    },
-    "Cluster5": {
-        "Overview": "",
-        "Function List": {},
-        "id": 5,
-        "root": "State12",
-        "states": [
-            [
-                19,
-                12
-            ]
-        ]
-    },
-    "Cluster6": {
-        "Overview": "System UI not responding dialog, offering options to close the app or wait for recovery.",
-        "Function List": {
-            "close the app": 0,
-            "wait for system UI": 1
-        },
-        "id": 6,
-        "root": "State13",
-        "states": [
-            [
-                13
-            ]
-        ]
-    },
     "Cluster7": {
-        "Overview": "Theme color selection page prompting users to choose a preferred color scheme for the app interface.",
+        "Overview": "Webview page displaying information about upgrading mandatory options, featuring a back button to return.",
         "Function List": {
-            "select theme color": 0
+            "navigate back": 0
         },
         "id": 7,
-        "root": "State14",
+        "root": "State7",
         "states": [
             [
-                15,
-                14
+                7
             ]
         ]
     },
     "Cluster8": {
-        "Overview": "A dialog prompting the user to view beginner help, with options to view or cancel.",
+        "Overview": "A warning dialog explaining the limitations and potential issues of the 'Hide in multitask list' feature.",
         "Function List": {
-            "view beginner help": 2,
-            "cancel help dialog": 0
+            "confirm warning": 0
         },
         "id": 8,
-        "root": "State16",
+        "root": "State8",
         "states": [
             [
-                16
+                8,
+                21
             ]
         ]
     },
     "Cluster9": {
-        "Overview": "A tip dialog on MainActivity with a checkbox to acknowledge viewing the upper right menu anytime.",
+        "Overview": "Displays an important tip about wallpaper reinforcement to prevent focus interruptions and offers a custom wallpaper button.",
         "Function List": {
-            "acknowledge tip": 0
+            "自定义壁纸": 0
         },
         "id": 9,
-        "root": "State17",
+        "root": "State9",
         "states": [
             [
-                17
+                9
             ]
         ]
     },
     "Cluster10": {
-        "Overview": "Quick menu popup providing navigation to features like Focus Records, Study Room, Future Countdown, and access to Settings and Themes.",
+        "Overview": "Permission dialog requesting file access to set a wallpaper image, with options to agree or disagree.",
         "Function List": {
-            "navigate to 'Focus Records'": 0,
-            "navigate to 'Study Room'": 0,
-            "navigate to 'Future Countdown'": 0,
-            "open settings": 4,
-            "open theme settings": 3,
-            "edit sort": 2,
-            "view quick help": 1
+            "agree to file access": 2,
+            "disagree to file access": 0
         },
         "id": 10,
+        "root": "State10",
+        "states": [
+            [
+                10
+            ]
+        ]
+    },
+    "Cluster11": {
+        "Overview": "Dialog prompting to enable Accessibility permission for stricter focus blocking, with cancel and confirm options.",
+        "Function List": {
+            "cancel dialog": 0
+        },
+        "id": 11,
+        "root": "State11",
+        "states": [
+            [
+                11
+            ]
+        ]
+    },
+    "Cluster12": {
+        "Overview": "A dialog warning that hiding icons is restricted by the new Android system, preventing the feature from being enabled.",
+        "Function List": {
+            "confirm dialog": 0
+        },
+        "id": 12,
+        "root": "State12",
+        "states": [
+            [
+                12,
+                17,
+                30,
+                29,
+                14,
+                23
+            ]
+        ]
+    },
+    "Cluster13": {
+        "Overview": "System error dialog indicating 'System UI isn't responding', offering options to close the app or wait.",
+        "Function List": {
+            "wait": 0,
+            "close app": 0
+        },
+        "id": 13,
+        "root": "State13",
+        "states": [
+            [
+                16,
+                33,
+                25,
+                13
+            ]
+        ]
+    },
+    "Cluster14": {
+        "Overview": "Whitelist settings page to select apps allowed during focus sessions, featuring search, help, and system app display options.",
+        "Function List": {
+            "cancel and exit": 6,
+            "view whitelist help": 0,
+            "search for apps": 0,
+            "show system apps": 3,
+            "toggle Tomato ToDo whitelist": 2,
+            "toggle DroidBot whitelist": 1
+        },
+        "id": 14,
         "root": "State18",
         "states": [
             [
+                20,
                 18
+            ]
+        ]
+    },
+    "Cluster15": {
+        "Overview": "Help page for the whitelist feature, displaying a list of FAQs regarding whitelist usage and settings.",
+        "Function List": {
+            "close help page": 0,
+            "view FAQ '什么是白名单？'": 0,
+            "view FAQ '全局和独立白名单的区别是什么？'": 0,
+            "view FAQ '在哪里设置独立白名单？'": 0,
+            "view FAQ '为什么设置了但没有生效？'": 0,
+            "view FAQ '如何使独立重新跟随全局？'": 0,
+            "view FAQ '如何把相机，相册或桌面程序加入白名单？'": 0,
+            "view FAQ '为什么计时界面没有出现App按钮？'": 0
+        },
+        "id": 15,
+        "root": "State19",
+        "states": [
+            [
+                19
+            ]
+        ]
+    },
+    "Cluster16": {
+        "Overview": "A prompt dialog explaining how to delete an independent whitelist and warning against recreating it.",
+        "Function List": {
+            "confirm dialog": 0
+        },
+        "id": 16,
+        "root": "State22",
+        "states": [
+            [
+                22
+            ]
+        ]
+    },
+    "Cluster17": {
+        "Overview": "Help dialog explaining the Whitelist feature during Xueba mode or lock screen, allowing users to confirm and close the popup.",
+        "Function List": {
+            "confirm and close dialog": 0
+        },
+        "id": 17,
+        "root": "State24",
+        "states": [
+            [
+                24
+            ]
+        ]
+    },
+    "Cluster18": {
+        "Overview": "Lock phone page offering quick lock, custom lock times, relaxation, and lock settings, plus bottom navigation tabs.",
+        "Function List": {
+            "navigate to '待办'": 11,
+            "navigate to '待办集'": 10,
+            "navigate to '统计数据'": 9,
+            "navigate to '我的'": 8,
+            "start fast lock": 0,
+            "add custom lock time": 6,
+            "open lock settings": 5,
+            "start relax session": 0,
+            "open menu": 0,
+            "open permissions": 0,
+            "share": 0
+        },
+        "id": 18,
+        "root": "State26",
+        "states": [
+            [
+                36,
+                26
+            ]
+        ]
+    },
+    "Cluster19": {
+        "Overview": "Permission check page for the scheduled lock feature, prompting the user to enable the 'View Usage' permission to ensure whitelist functionality.",
+        "Function List": {
+            "enable usage permission": 0,
+            "cancel and exit": 0
+        },
+        "id": 19,
+        "root": "State27",
+        "states": [
+            [
+                27
+            ]
+        ]
+    },
+    "Cluster20": {
+        "Overview": "Daily check-in page for tracking habits like early rising, focus duration, and sleep.",
+        "Function List": {
+            "check '今日专注时长打卡'": 3,
+            "check '早起打卡'": 0,
+            "check '睡眠打卡'": 1
+        },
+        "id": 20,
+        "root": "State28",
+        "states": [
+            [
+                28
+            ]
+        ]
+    },
+    "Cluster21": {
+        "Overview": "Quick menu popup providing navigation to features like Future Countdown, Focus Record, Study Room, and access to Settings, Theme, and Help.",
+        "Function List": {
+            "navigate to '专注记录'": 6,
+            "navigate to '自习室'": 5,
+            "navigate to '未来倒计时'": 4,
+            "open settings": 3,
+            "change theme": 2,
+            "open help": 1
+        },
+        "id": 21,
+        "root": "State31",
+        "states": [
+            [
+                31
+            ]
+        ]
+    },
+    "Cluster22": {
+        "Overview": "History page displaying a calendar for June 2026 with focus records, offering options to add, export, sort, and switch views.",
+        "Function List": {
+            "navigate back": 0,
+            "add record": 7,
+            "switch to week view": 6,
+            "select month": 5,
+            "go to today": 4,
+            "sort records": 3,
+            "export records": 2,
+            "select calendar day": 1
+        },
+        "id": 22,
+        "root": "State32",
+        "states": [
+            [
+                32
+            ]
+        ]
+    },
+    "Cluster23": {
+        "Overview": "Relaxation and meditation page allowing users to start a session, exit, and select background music.",
+        "Function List": {
+            "start meditation": 0,
+            "exit page": 0,
+            "select music option 1": 2,
+            "select music option 2": 1
+        },
+        "id": 23,
+        "root": "State34",
+        "states": [
+            [
+                34,
+                35
+            ]
+        ]
+    },
+    "Cluster24": {
+        "Overview": "Permission prompt dialog explaining the need for Usage Access permission for the lock feature, with options to cancel or set the permission.",
+        "Function List": {
+            "设置权限": 0,
+            "取消": 0
+        },
+        "id": 24,
+        "root": "State37",
+        "states": [
+            [
+                37
+            ]
+        ]
+    },
+    "Cluster25": {
+        "Overview": "",
+        "Function List": {},
+        "id": 25,
+        "root": "State38",
+        "states": [
+            [
+                38
             ]
         ]
     }

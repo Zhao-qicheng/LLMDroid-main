@@ -5,13 +5,14 @@ param(
     [string]$Python = "D:\DesignSoftware\Python\python.exe",
     [string]$OutputDir = "$PSScriptRoot\output-tomato-glm",
     [int]$Timeout = 3600,
-    [int]$Interval = 3,
-    [int]$Count = 100000
+    [int]$Interval = 5,
+    [int]$Count = 100
 )
 
-$apkFile = Get-ChildItem -Path (Join-Path $PSScriptRoot "..") -Filter "*ToDo.apk" -File |
+$projectRoot = Join-Path $PSScriptRoot ".."
+$apkFile = Get-ChildItem -Path $projectRoot, (Join-Path $projectRoot "input_apk") -Filter "*ToDo.apk" -File -ErrorAction SilentlyContinue |
     Select-Object -First 1
-$apkPath = if ($apkFile) { $apkFile.FullName } else { Join-Path $PSScriptRoot "..\TomatoToDo.apk" }
+$apkPath = if ($apkFile) { $apkFile.FullName } else { Join-Path $PSScriptRoot "input_apk\TomatoToDo.apk" }
 
 if (-not (Test-Path $apkPath)) {
     throw "APK not found: $apkPath"
