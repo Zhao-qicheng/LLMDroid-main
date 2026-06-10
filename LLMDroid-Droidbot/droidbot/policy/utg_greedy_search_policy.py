@@ -1,3 +1,7 @@
+# 文件作用：
+# 1. 实现 DroidBot 原有的 UTG 贪心探索策略，在当前页优先执行未探索事件。
+# 2. 当前页无新事件时，沿 UTG 导航到仍有未探索动作的已知页面。
+# 3. 在 LLMDroid 中作为 EXPLORE 阶段的默认高速探索策略。
 from .input_policy import *
 from .utg_based_policy import UtgBasedInputPolicy
 from ..desc.action_type import ActionType
@@ -7,6 +11,9 @@ from ..utils import custom_serializer
 class UtgGreedySearchPolicy(UtgBasedInputPolicy):
     """
     DFS/BFS (according to search_method) strategy to explore UFG (new)
+
+    中文说明：这是 DroidBot 原有的贪心探索策略。LLMDroid 在 EXPLORE 模式下
+    仍然调用这里选择动作，只有覆盖率/时间触发后才切到 LLM Guidance。
     """
 
     def __init__(self, device, app, random_input, search_method, code_coverage):
@@ -31,6 +38,7 @@ class UtgGreedySearchPolicy(UtgBasedInputPolicy):
         generate an event based on current UTG
         @return: InputEvent
         """
+        # 该函数只负责“自主探索阶段”的动作选择；LLM 导航和目标功能测试由父类状态机接管。
         current_state = self.current_state
         self.logger.info("Current state: %s" % current_state.state_str)
         if current_state.state_str in self.__missed_states:
@@ -87,6 +95,7 @@ class UtgGreedySearchPolicy(UtgBasedInputPolicy):
             self.__num_steps_outside = 0
 
         # Get all possible input events
+        # 候选事件来自 DeviceState.get_possible_input()，包括点击、输入、滚动等原子动作。
         possible_events = current_state.get_possible_input()
 
         if self.random_input:
@@ -103,6 +112,7 @@ class UtgGreedySearchPolicy(UtgBasedInputPolicy):
             possible_events = self.__sort_inputs_by_humanoid(possible_events)
 
         # If there is an unexplored event, try the event first
+        # 贪心策略优先执行当前页还没试过的事件，这是 DroidBot 广度覆盖能力的核心。
         for input_event in possible_events:
             if not self.utg.is_event_explored(event=input_event, state=current_state):
                 self.logger.info("Trying an unexplored event.")
@@ -111,6 +121,7 @@ class UtgGreedySearchPolicy(UtgBasedInputPolicy):
 
         target_state = self.__get_nav_target(current_state)
         if target_state:
+            # 当前页无新事件时，尝试沿 UTG 导航到仍有未探索事件的已知页面。
             navigation_steps = self.utg.get_navigation_steps(from_state=current_state, to_state=target_state)
             if navigation_steps and len(navigation_steps) > 0:
                 self.logger.info("Navigating to %s, %d steps left." % (target_state.state_str, len(navigation_steps)))
@@ -129,6 +140,7 @@ class UtgGreedySearchPolicy(UtgBasedInputPolicy):
         return IntentEvent(intent=stop_app_intent, action_type=ActionType.STOP)
 
     def __sort_inputs_by_humanoid(self, possible_events):
+        # Humanoid 可对候选事件重新排序；LLMDroid-Droidbot 不依赖它，但保留兼容入口。
         if sys.version.startswith("3"):
             from xmlrpc.client import ServerProxy
         else:
@@ -158,6 +170,7 @@ class UtgGreedySearchPolicy(UtgBasedInputPolicy):
         return new_events
 
     def __get_nav_target(self, current_state):
+        # 在已到达状态中寻找“还没有完全探索”的页面作为自主探索导航目标。
         # If last event is a navigation event
         if self.__nav_target and self.__event_trace.endswith(EVENT_FLAG_NAVIGATE):
             navigation_steps = self.utg.get_navigation_steps(from_state=current_state, to_state=self.__nav_target)

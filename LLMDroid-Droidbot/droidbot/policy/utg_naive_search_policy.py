@@ -1,3 +1,7 @@
+# 文件作用：
+# 1. 实现 DroidBot 的朴素 DFS/BFS 探索策略，基于当前 UI 和 UTG 生成下一步事件。
+# 2. 相比 greedy 策略逻辑更直接，适合理解 DroidBot 原始状态探索思路。
+# 3. 可作为 LLMDroid EXPLORE 阶段的备选输入策略。
 from .input_policy import *
 from .utg_based_policy import UtgBasedInputPolicy
 from ..desc.action_type import ActionType
@@ -155,4 +159,3 @@ class UtgNaiveSearchPolicy(UtgBasedInputPolicy):
             return
         state_activity = state.foreground_activity
         self.explored_views.add((state_activity, view_str))
-

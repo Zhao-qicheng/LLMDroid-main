@@ -1,3 +1,7 @@
+# 文件作用：
+# 1. 实现手动测试策略，启动 App 后等待用户人工操作并保存状态。
+# 2. 适合调试页面抓取、状态保存和脚本样本构造。
+# 3. 在 LLMDroid 中可用于人工辅助分析特定页面或流程。
 from .input_policy import *
 from .utg_based_policy import UtgBasedInputPolicy
 from ..desc.action_type import ActionType

@@ -1,3 +1,7 @@
+# 文件作用：
+# 1. 维护 UI Transition Graph，记录页面状态节点和事件触发的状态转移边。
+# 2. 支持判断事件/状态是否已探索，并生成到目标状态的导航路径。
+# 3. 在 LLMDroid Guidance 阶段承接 LLM 选择的目标，负责本地路径规划。
 import logging
 import json
 import os
@@ -15,6 +19,7 @@ from ..desc.action_type import ActionType
 
 
 class UTGEdge(TypedDict):
+    # UTG 边上的一次具体事件记录：事件对象、编号、创建时间和路径生成时的使用标记。
     event: InputEvent
     id: int
     time: float
@@ -22,6 +27,7 @@ class UTGEdge(TypedDict):
 
 
 class Step:
+    # LLMDroid 导航路径中的一步：执行 event 后期望到达 node 对应的 State。
     def __init__(self, node: int, event: InputEvent, created_time: float):
         self.node: int = node
         self.event: InputEvent = event
@@ -29,6 +35,7 @@ class Step:
 
 
 class Path:
+    # 一条可执行路径，steps 中保存从当前/起点到目标状态的事件序列。
     def __init__(self, length, latest_time, steps):
         self.length = length
         self.latest_time = latest_time
@@ -38,6 +45,9 @@ class Path:
 class UTG(object):
     """
     UI transition graph
+
+    中文说明：UTG 记录 DroidBot 已探索到的页面状态和事件转移。
+    LLMDroid 的 Guidance 阶段只让 LLM 选择目标，实际到目标页的路径由 UTG 本地计算。
     """
 
     def __init__(self, device, app, random_input):
@@ -51,6 +61,7 @@ class UTG(object):
         self.G2 = nx.DiGraph()  # graph with same-structure states clustered
         self.llm_G = nx.DiGraph()   # LLMDroid's graph
 
+        # effective/ineffective 用于判断某个事件是否已探索：能导致状态变化的是 effective，否则是 ineffective。
         self.transitions = []
         self.effective_event_strs = set()
         self.ineffective_event_strs = set()
@@ -87,6 +98,7 @@ class UTG(object):
         """
         after add_transition, self.last_state is current state
         """
+        # 每次动作执行后都会调用这里，把“旧状态 --事件--> 新状态”写入图结构。
         _ = self.add_node(old_state)
         current_state = self.add_node(new_state)
         if old_state is None:
@@ -103,6 +115,7 @@ class UTG(object):
         self.transitions.append((old_state, event, current_state))
 
         if old_state.state_str == current_state.state_str:
+            # 状态未变化的事件仍然要记录为已探索，避免策略反复执行无效动作。
             self.ineffective_event_strs.add(event_str)
             # If you previously performed the same action from old_state, you can reach other states.
             # But now the action can only reach itself (no change)
@@ -130,6 +143,7 @@ class UTG(object):
 
         if (old_state.state_str, current_state.state_str) not in self.G.edges():
             self.G.add_edge(old_state.state_str, current_state.state_str, events={})
+        # G 使用完整 state_str 建图，保留具体页面内容差异，供精确路径和可视化使用。
         self.G[old_state.state_str][current_state.state_str]["events"][event_str] = UTGEdge(
             event=event, id=self.effective_event_count, time=time.time(), used=False
         )
@@ -143,6 +157,7 @@ class UTG(object):
 
         if (old_state.structure_str, current_state.structure_str) not in self.G2.edges():
             self.G2.add_edge(old_state.structure_str, current_state.structure_str, events={})
+        # G2 使用去内容结构建图，适合处理文本变化但结构相似的页面。
         self.G2[old_state.structure_str][current_state.structure_str]["events"][event_str] = {
             "event": event,
             "id": self.effective_event_count
@@ -172,6 +187,7 @@ class UTG(object):
             return None
         existed_state: DeviceState = None
         if state.state_str not in self.G.nodes():
+            # 新状态第一次出现时分配全局 State id，并保存截图/JSON 到输出目录。
             existed_state = state
             # set state's id
             state_id = len(self.G.nodes)
@@ -182,6 +198,7 @@ class UTG(object):
             if self.first_state is None:
                 self.first_state = state
         else:
+            # 如果状态已存在，返回图中已有对象，保证同一 state_str 共享同一个 DeviceState。
             existed_state = self.G.nodes[state.state_str]['state']
             # self.logger.info(f"State{existed_state.get_id()} already existed")
 
@@ -198,6 +215,7 @@ class UTG(object):
         """
         Output current UTG to a js file
         """
+        # 每次有效转移后刷新 utg.js，index.html 会读取它展示状态图。
         if not self.device.output_dir:
             return
 
@@ -315,10 +333,12 @@ class UTG(object):
         utg_file.close()
 
     def is_event_explored(self, event, state):
+        # 一个事件只要曾经有效或无效执行过，就不再算“未探索事件”。
         event_str = event.get_event_str(state)
         return event_str in self.effective_event_strs or event_str in self.ineffective_event_strs
 
     def is_state_explored(self, state):
+        # 若当前状态的所有候选事件都已执行过，则认为该状态探索完成。
         if state.state_str in self.explored_state_strs:
             return True
         for possible_event in state.get_possible_input():
@@ -341,6 +361,7 @@ class UTG(object):
         return reachable_states
 
     def get_navigation_steps(self, from_state, to_state):
+        # DroidBot 自主探索阶段使用的最短路径导航，返回 (state, event) 列表。
         if from_state is None or to_state is None:
             return None
         try:
@@ -417,6 +438,7 @@ class UTG(object):
             return None
 
     def find_state_by_id(self, target_id) -> Optional[DeviceState]:
+        # LLM/StateCluster 使用数字 id 表示目标状态，这里映射回图中的 DeviceState。
         # Traverse each node in the graph
         for node in self.G.nodes():
             # Get the node's state attribute
@@ -433,6 +455,7 @@ class UTG(object):
         return None
 
     def get_paths(self, target_state_id: int) -> list[Path]:
+        # LLMDroid Guidance 阶段使用：从当前状态尝试生成到目标 State 的候选路径。
         # self.logger.info(f"Try to find path from Cluster{self.current_cluster.get_id()} to Cluster{target_cluster_id}")
         # # find cluster by id
         # target_cluster: Optional['StateCluster'] = self.find_cluster_by_id(target_cluster_id)
@@ -474,6 +497,7 @@ class UTG(object):
         # return []
 
     def generate_paths(self, source_state, dest_state: DeviceState) -> list[Path]:
+        # 生成多条候选路径：最短路径必选，再补充若干较短且较新的路径作为失败备选。
         paths = []
 
         raw_paths = nx.all_simple_paths(self.G, source=self.first_state.state_str,
@@ -501,6 +525,7 @@ class UTG(object):
                 edge['used'] = False
 
         # Select the three paths of the shortest and latest created edge
+        # 最多返回 3 条路径，避免导航失败时在过多历史路径上消耗时间。
         if len(paths) <= 1:
             return paths
         # First sort: sort by length in ascending order
@@ -514,6 +539,7 @@ class UTG(object):
         return paths[:3]
 
     def convert_path(self, raw_path: list[str]) -> Path:
+        # 将 networkx 的节点列表转换为可执行 Step 列表，并选择每条边上的具体事件。
         steps: list[Step] = []
         latest_time = 0
         # Traverse node pairs in a path, skipping the source node
@@ -547,6 +573,7 @@ class UTG(object):
                 steps.append(Step(node=next_node_state.get_id(), event=value['event'], created_time=value['time']))
 
         # add STOP event
+        # 路径开头插入 STOP/重启动作，尽量让导航从稳定初始状态开始。
         steps.insert(0, Step(node=self.G.nodes[raw_path[0]]['state'].get_id(),
                              event=IntentEvent(intent=self.app.get_stop_intent(),
                                                action_type=ActionType.STOP),
@@ -556,6 +583,7 @@ class UTG(object):
         return path
 
     def print_path(self, path: Path, id_: int):
+        # 调试输出路径中的事件和目标 State，便于分析 LLM 目标是否可达。
         path_str = ''
         for step in path.steps:
             path_str += f" --> {step.event.to_description()} --> State{step.node}"

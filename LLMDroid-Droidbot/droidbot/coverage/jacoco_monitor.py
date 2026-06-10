@@ -1,3 +1,7 @@
+# 文件作用：
+# 1. 通过 JPype 调用 JacocoBridge.jar，读取运行时 .ec 文件和 .class 文件计算方法覆盖率。
+# 2. 为 Jacoco 插桩 APK 提供实时覆盖率反馈，并缓存上一次有效覆盖率以处理超时。
+# 3. 是 LLMDroid 在开源/可重编译 App 场景下触发 Guidance 的覆盖率来源。
 import subprocess
 import jpype
 import jpype.imports
@@ -107,4 +111,3 @@ class JacocoCVMonitor(CodeCoverageMonitor):
             self.logger.info("Shutting down JVM...")
             jpype.shutdownJVM()
             self.logger.info("JVM shut down successfully.")
-

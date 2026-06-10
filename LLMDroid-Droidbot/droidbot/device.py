@@ -1,3 +1,7 @@
+# 文件作用：
+# 1. 封装 Android 设备/模拟器的操作能力，包括 ADB、安装卸载、启动 App、截图和状态抓取。
+# 2. 管理 DroidBot 运行所需的适配器，如 logcat、minicap、输入法、辅助服务等。
+# 3. 为策略层提供 get_current_state() 和 send_event() 等统一设备接口。
 import logging
 import os
 import re

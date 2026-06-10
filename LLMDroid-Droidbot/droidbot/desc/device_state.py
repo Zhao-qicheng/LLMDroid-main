@@ -1,3 +1,7 @@
+# 文件作用：
+# 1. 表示一次设备 UI 抓取得到的页面状态，保存 view hierarchy、截图、Activity 和页面哈希。
+# 2. 从页面中生成候选输入事件，并将 UI 转换为 LLM 可读的紧凑 HTML 描述。
+# 3. 提供页面相似度、控件匹配、事件匹配等能力，是 StateCluster 和 UTG 的基础。
 import copy
 import math
 import os
@@ -17,6 +21,9 @@ from .state_cluster import StateCluster
 class DeviceState(object):
     """
     the state of the current device
+
+    中文说明：DeviceState 是一次 UI 抓取后的页面快照。
+    它保存原始 view hierarchy、可执行事件、HTML 描述、页面哈希和 LLMDroid 的 Widget 抽象。
     """
 
     def __init__(self, device, views, foreground_activity, activity_stack, background_services,
@@ -38,6 +45,8 @@ class DeviceState(object):
         self.__generate_view_strs()
 
         # init widget from view
+        # LLMDroid 在 DroidBot 原始 view 之上额外构造 Widget，
+        # 用于 HTML 化、页面相似度计算和 LLM 返回控件 id 后的事件匹配。
         self.__widgets: list[Widget] = []
         self.__merged_widgets = {}
         root = self.__init_widgets()
@@ -79,6 +88,7 @@ class DeviceState(object):
         return json.dumps(self.to_dict(), ensure_ascii=False, indent=2)
 
     def __parse_views(self, raw_views):
+        # 这里保留原始 UIAutomator view 字典；后续 Widget/事件生成都基于这些字段。
         views = []
         if not raw_views or len(raw_views) == 0:
             return views
@@ -444,6 +454,8 @@ class DeviceState(object):
         Get a list of possible input events for this state
         :return: list of InputEvent
         """
+        # 候选事件只生成一次并缓存。后续 DroidBot/LLM 都从同一批事件里选择，
+        # 这样可以保证控件 id、Widget 和 InputEvent 之间保持一致。
         if self.possible_events:
             return [] + self.possible_events
         possible_events = []
@@ -451,6 +463,7 @@ class DeviceState(object):
         touch_exclude_view_ids = set()
         for view_dict in self.views:
             # exclude navigation bar if exists
+            # 过滤系统状态栏/导航栏，避免把系统 UI 当作被测 App 的功能入口。
             if self.__safe_dict_get(view_dict, 'enabled') and \
                     self.__safe_dict_get(view_dict, 'visible') and \
                     self.__safe_dict_get(view_dict, 'resource_id') not in \
@@ -461,12 +474,14 @@ class DeviceState(object):
 
         for view_id in enabled_view_ids:
             if self.__safe_dict_get(self.views[view_id], 'clickable'):
+                # clickable view 生成点击事件，是 DroidBot 最主要的原子动作来源。
                 possible_events.append(TouchEvent(view=self.views[view_id]))
                 touch_exclude_view_ids.add(view_id)
                 touch_exclude_view_ids.union(self.get_all_children(self.views[view_id]))
 
         for view_id in enabled_view_ids:
             if self.__safe_dict_get(self.views[view_id], 'scrollable'):
+                # 对可滚动控件生成四个方向，具体是否有效由设备执行后的状态变化决定。
                 possible_events.append(ScrollEvent(view=self.views[view_id], direction="up"))
                 possible_events.append(ScrollEvent(view=self.views[view_id], direction="down"))
                 possible_events.append(ScrollEvent(view=self.views[view_id], direction="left"))
@@ -484,12 +499,14 @@ class DeviceState(object):
 
         for view_id in enabled_view_ids:
             if self.__safe_dict_get(self.views[view_id], 'editable'):
+                # editable view 默认生成 SetTextEvent，LLM Guidance 阶段可覆盖其中的 text。
                 possible_events.append(SetTextEvent(view=self.views[view_id], text="Hello World"))
                 touch_exclude_view_ids.add(view_id)
                 # TODO figure out what event can be sent to editable views
                 pass
 
         # Set click events for child components of clickable components
+        # 对叶子节点补充点击事件，提升黑盒场景下可探索动作的召回率。
         for view_id in enabled_view_ids:
             if view_id in touch_exclude_view_ids:
                 continue
@@ -508,6 +525,7 @@ class DeviceState(object):
         """
         Get a text representation of current state
         """
+        # DroidBot 原始文本化页面描述；LLMDroid 的 LLM prompt 主要使用后面的 to_html()。
         enabled_view_ids = []
         for view_dict in self.views:
             # exclude navigation bar if exists
@@ -673,6 +691,7 @@ class DeviceState(object):
 
     def __init_widgets(self) -> int:
         # create widgets
+        # 只为可见 view 创建 Widget，随后按 hash 合并重复控件，减少页面相似度和 HTML 的噪声。
         first_visible = -1
         for i, view in enumerate(self.views):
             if self.__safe_dict_get(view, 'visible'):
@@ -683,6 +702,7 @@ class DeviceState(object):
             self.logger.error("Can't find ROOT(first visible) widget!!!")
 
         # merge widgets
+        # 相同 hash 的控件被视为重复控件，保留一个代表，同时记录 position 方便后续找相似控件。
         final_widgets = []
         for widget in self.__widgets:
             hashcode = widget.get_hash()
@@ -699,6 +719,7 @@ class DeviceState(object):
         return first_visible
 
     def __should_merge(self, father: Widget, child: Widget):
+        # button 只有一个普通文本子节点时，把文本合并进 button，降低 HTML 层级。
         if len(child.get_children()) == 0 and \
                 child.get_html_class() == HtmlClass.P and \
                 father.get_html_class() == HtmlClass.BUTTON:
@@ -711,10 +732,12 @@ class DeviceState(object):
             self.__html_desc += '\t'
 
     def __generate_html_recursive(self, parent: Widget):
+        # 将 Widget 树转成紧凑 HTML。LLM 看到的是这个 HTML，而不是原始 UIAutomator JSON。
         if not parent.get_visible():
             return
 
         if self.__tab_count >= 25 or self.__html_tag_count >= 100:
+            # 防止复杂页面生成超长 prompt，牺牲部分细节换取模型可处理性和成本可控。
             return
 
         self.__html_tag_count += 1
@@ -741,6 +764,7 @@ class DeviceState(object):
                     child_widgets.append(w)
             # Merge nested situations to reduce depth
             # There is only one child node, and the child node is of normal type
+            # 单链路普通文本节点会被合并，避免无意义的深层嵌套干扰 LLM。
             if len(child_widgets) == 1 and child_widgets[0].get_html_class() == HtmlClass.P:
                 widget_to_merge.append(child_widgets[0])
                 # self.logger.debug(f'[to html] merge widget: {child_widgets[0].to_html()[:-1]}')
@@ -776,6 +800,7 @@ class DeviceState(object):
         return state description in html format.
         only generate html once
         """
+        # 线程锁保证 LLMAgent 子线程和主探索线程同时读取时不会重复生成/破坏 HTML。
         with self.__lock:
             if self.__html_desc:
                 return self.__html_desc
@@ -792,6 +817,7 @@ class DeviceState(object):
         return self.__id
 
     def compute_similarity(self, other: 'DeviceState') -> float:
+        # 页面相似度基于 Widget hash 的重合度，用于把相似页面合并为同一个 StateCluster。
         matched_count = 0
         to_compare = self.__widgets if len(self.__widgets) > len(other.__widgets) else other.__widgets
         candidates = other.__widgets if len(self.__widgets) > len(other.__widgets) else self.__widgets
@@ -822,6 +848,7 @@ class DeviceState(object):
         Given the id of a widget, return the corresponding widget
         The widget_id should be the id of the widget inside the state, and should not come from the widget_id in other states.
         """
+        # LLM 返回的 Element Id 最终会在当前 DeviceState 中解析为 Widget。
         for widget in self.get_all_widgets():
             if widget_id == widget.get_id():
                 return widget
@@ -832,6 +859,7 @@ class DeviceState(object):
         Given a widget in another state, return similar widget in the current state
         First look for widget with the same hash, and then try to select widget with the same position.
         """
+        # 导航过程中页面可能轻微变化，该方法用于在新页面上寻找“同类控件”以继续执行计划。
         hash_to_match = widget.get_hash()
         pos_to_match = widget.get_position()
         for w in self.__widgets:
@@ -862,6 +890,7 @@ class DeviceState(object):
         self.logger.info("*********************************")
 
     def find_similar_event(self, event: InputEvent) -> Optional[InputEvent]:
+        # 根据动作类型 + 目标 Widget hash，在当前页面中寻找与历史路径事件等价的事件。
         # ActionType.CLICK.value <= event.get_action_type().value <= ActionType.SCROLL_RIGHT_LEFT
         if isinstance(event, UIEvent):
             action_type = event.get_action_type()
@@ -888,6 +917,7 @@ class DeviceState(object):
             return event
 
     def find_event_by_id_and_type(self, widget_id: int, act_type: ActionType) -> Optional['InputEvent']:
+        # 将 LLM 的结构化输出（控件 id + 动作类型）映射回 DroidBot 可执行的 InputEvent。
         for event in self.get_possible_input():
             if (isinstance(event, UIEvent)
                     and event.get_action_type() == act_type
@@ -900,6 +930,7 @@ class DeviceState(object):
         """
         find all relevant events by widget
         """
+        # StateCluster 会用它把某个功能绑定到具体 Widget 上可执行的动作。
         ret = []
         for event in self.get_possible_input():
             if isinstance(event, UIEvent) and event.get_target() == widget:
@@ -909,6 +940,7 @@ class DeviceState(object):
     def diff_widgets(self, target: 'DeviceState') -> list['Widget']:
         # return widget with different hash
         # ignore Layout
+        # reanalysis 阶段只把与 root state 不同的控件提交给 LLM，减少 prompt 长度。
         if target == self:
             return []
         res: list['Widget'] = []

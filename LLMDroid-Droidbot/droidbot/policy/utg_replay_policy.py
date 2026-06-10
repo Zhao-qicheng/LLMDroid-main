@@ -1,3 +1,7 @@
+# 文件作用：
+# 1. 实现 UTG 回放策略，根据已有输出目录中的事件记录重新执行历史测试路径。
+# 2. 用于复现实验、调试状态转移和验证之前生成的事件序列。
+# 3. 与普通探索策略不同，它主要消费已有事件，而不是生成新动作。
 from .input_policy import *
 
 class UtgReplayPolicy(InputPolicy):

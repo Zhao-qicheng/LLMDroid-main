@@ -1,3 +1,7 @@
+# 文件作用：
+# 1. 描述被测 APK/App 的静态信息，包括包名、主 Activity、权限、Intent 和哈希等。
+# 2. 通过 aapt/androguard 等工具解析 APK，为安装、启动、停止和权限授予提供元数据。
+# 3. 是 DroidBot/LLMDroid 与具体被测应用之间的静态信息桥梁。
 import logging
 import os
 import hashlib

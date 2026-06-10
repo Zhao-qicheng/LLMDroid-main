@@ -1,3 +1,7 @@
+# 文件作用：
+# 1. 封装 LLMDroid 与大语言模型的交互，负责构造 prompt、调用模型并解析 JSON 响应。
+# 2. 异步处理页面摘要、目标功能选择、目标页动作选择和页面簇重分析四类任务。
+# 3. 将模型输出转成 StateCluster/UTG 可使用的结构化目标或 DroidBot 可执行的 InputEvent。
 import os.path
 import sys
 from enum import Enum
@@ -25,6 +29,7 @@ from ..global_log import get_logger
 
 
 class QuestionMode(Enum):
+    # LLMAgent 支持的提问类型：页面摘要、目标选择、目标功能执行、补充重分析。
     OVERVIEW = 0
     GUIDE = 1
     TEST_FUNCTION = 2
@@ -33,6 +38,7 @@ class QuestionMode(Enum):
 
 
 class QuestionPayload:
+    # 主线程向 LLMAgent 子线程投递任务时使用的轻量载体。
     def __init__(self, mode, cluster: Optional['StateCluster'] = None,
                  state: Optional['DeviceState'] = None,
                  first_func_execution: bool = True):
@@ -55,6 +61,11 @@ class WidgetInfo(TypedDict):
 
 
 class LLMAgent:
+    """
+    中文说明：LLMAgent 是 LLMDroid 与大模型之间的桥。
+    它负责把页面/cluster/历史动作组织成 prompt，并把模型 JSON 响应转成可执行目标或事件。
+    为了不阻塞自主探索，耗时的 LLM 请求放在子线程中异步处理。
+    """
 
     MODEL_STR = 'gpt-4o'
     BASE_URL = 'https://api.openai.com/v1'
@@ -64,11 +75,13 @@ class LLMAgent:
         self.__app: 'App' = app
         self.__utg: 'UTG' = utg
         self.__QA_file = os.path.join(self.__app.output_dir, 'LLM_QA.txt')
+        # LLM_QA.txt 保存完整 prompt/response，是调试模型理解和格式错误的首要入口。
         with open(self.__QA_file, 'w', encoding='utf-8') as file:
             file.write(f"package: {self.__app.package_name}\n")
             file.write('=' * 20 + '\n')
         self.__start_prompt = ''
         # read from config file
+        # config.json 同时提供 App 语义描述和 OpenAI-compatible 模型调用配置。
         with open('./config.json', mode='r', encoding='utf-8') as file:
             config = json.load(file)
             log_config = dict(config)
@@ -95,9 +108,11 @@ class LLMAgent:
                 LLMAgent.BASE_URL = config['BaseUrl']
             self.__start_prompt = f"I'm now testing an app called {self.__app_name} on Android.\n{self.__app_desc}\n"
         # init client
+        # 使用 OpenAI SDK 的兼容接口，因此 BaseUrl 可以指向第三方 OpenAI-compatible 服务。
         self.__client = OpenAI(api_key=self.__api_key, base_url=LLMAgent.BASE_URL, timeout=30000)
 
         # overview
+        # top_valued_cluster 是 LLM 维护的高价值页面簇列表，Guidance 会优先从这里选目标。
         self.__top_valued_cluster: list['StateCluster'] = []
         self.__p2: int = 10
 
@@ -109,6 +124,7 @@ class LLMAgent:
         self.__executed_events: list[str] = []
 
         #
+        # 高优先级队列处理当前流程必须等待的任务；低优先级队列处理可延后的 reanalysis。
         self.__queue = Queue()
         self.__low_queue = Queue()
         self.__question_remained: int = 0
@@ -128,11 +144,13 @@ class LLMAgent:
         """
 
         if payload.mode != QuestionMode.REANALYSIS:
+            # overview/guidance/test_function 都会影响当前阶段推进，进入高优先级队列。
             with self.__question_remained_lock:
                 self.__question_remained += 1
             self.__queue.put(payload)
             self.logger.info(f"Push a question to high priority queue, remains: {self.__queue.qsize()}")
         else:
+            # reanalysis 只补充已有 cluster 的功能信息，且仅对高价值 cluster 做，降低 LLM 成本。
             if payload.cluster in self.__top_valued_cluster[:self.__p2]:
                 with self.__question_remained_lock:
                     self.__question_remained += 1
@@ -140,6 +158,7 @@ class LLMAgent:
                 self.logger.info(f"Push a question to low priority queue, remains: {self.__low_queue.qsize()}")
 
     def __work_loop(self):
+        # 子线程循环消费 LLM 任务。先看高优先级队列，再处理低优先级重分析任务。
         while True:
             try:
                 payload: Optional[QuestionPayload] = None
@@ -154,6 +173,7 @@ class LLMAgent:
                         pass
 
                 if payload:
+                    # 不同 mode 对应不同 prompt 模板和响应处理逻辑。
                     if payload.mode == QuestionMode.OVERVIEW:
                         self.__ask_for_overview(payload)
                     elif payload.mode == QuestionMode.GUIDE:
@@ -171,6 +191,7 @@ class LLMAgent:
                 traceback.print_exc()
 
     def wait_until_queue_empty(self):
+        # 进入 Guidance 前必须等页面摘要完成，否则 LLM 没有足够的 cluster/function 候选。
         self.logger.info(f"Wait until queue is empty...")
         while True:
             with self.__question_remained_lock:
@@ -182,6 +203,7 @@ class LLMAgent:
             time.sleep(3)
 
     def __ask_for_overview(self, payload: QuestionPayload):
+        # OVERVIEW：让 LLM 阅读一个新页面簇的 HTML 描述，产出页面概览和可测试功能列表。
         if payload.cluster is None:
             self.logger.warning("Payload's state is None, skip")
 
@@ -195,6 +217,7 @@ class LLMAgent:
         prompt += "```\n"
 
         if len(self.__top_valued_cluster) >= 5:
+            # 已有足够 cluster 时，请 LLM 顺带维护 Top5，高价值列表用于减少后续目标搜索空间。
             # ask gpt to maintain the M list
             prompt += required_output_overview
             count = 0
@@ -209,11 +232,13 @@ class LLMAgent:
             prompt += f"Five other States:\n{json.dumps(top5, ensure_ascii=False, indent=4)}\n"
             prompt += required_output_overview_summary + answer_format_overview
         else:
+            # 启动早期 cluster 数量较少，直接追加当前页面摘要即可。
             prompt += required_output_overview2 + required_output_overview_summary2 + answer_format_overview2
 
         json_resp = self.__get_response(prompt)
 
         # process response
+        # 将模型返回的 overview/function list 写回 StateCluster，后续目标选择会读取这些结构化信息。
         payload.cluster.update_from_overview(json_resp)
         if len(self.__top_valued_cluster) >= 5:
             top_list: list[int] = []
@@ -252,6 +277,7 @@ class LLMAgent:
             self.__top_valued_cluster.append(payload.cluster)
 
     def __ask_for_guidance(self, payload: QuestionPayload):
+        # GUIDE：当覆盖率/时间触发停滞时，让 LLM 在高价值 cluster 中选择下一轮目标功能。
         self.logger.info("Ask for guidance")
         prompt = self.__start_prompt + input_explanation_guidance
 
@@ -277,6 +303,7 @@ class LLMAgent:
         self.__target_id = int(json_resp['Target State'][5:])
         self.__target_func = json_resp['Target Function']
 
+        # LLM 只选择语义目标；真正的路径规划仍在本地 UTG 中完成，避免逐步依赖模型。
         self.logger.info(f"Try to find path from Cluster{self.__utg.current_cluster.get_id()} to Cluster{self.__target_id}")
         # find cluster by id
         target_cluster: Optional['StateCluster'] = self.__utg.find_cluster_by_id(self.__target_id)
@@ -288,6 +315,7 @@ class LLMAgent:
             self.__future.set_result((target_state.get_id() if target_state else -1, self.__target_func))
 
     def __ask_for_test_function(self, payload: QuestionPayload):
+        # TEST_FUNCTION：到达目标页后，让 LLM 基于当前页面 HTML 选择具体控件和动作类型。
         self.logger.info("Ask for testing function")
 
         prompt = self.__start_prompt + input_explanation_test
@@ -319,6 +347,7 @@ class LLMAgent:
         ret = payload.state.find_event_by_id_and_type(widget_id, act_type)
         if ret:
             # set text to InputEvent
+            # 如果模型返回 Input 字段，只在 SetTextEvent 上写入真实输入文本。
             if 'Input' in json_resp:
                 input_text = json_resp['Input']
                 if isinstance(ret, SetTextEvent):
@@ -326,6 +355,7 @@ class LLMAgent:
                 else:
                     self.logger.warning(f"Can't set text to event:{ret.to_description()}")
             # extract corresponding line in html
+            # 记录已执行动作的 HTML 行，下一轮 prompt 会告知模型避免重复操作。
             for line in html.splitlines():
                 if f"id={widget_id}" in line:
                     s = ret.to_description(html=line.split('\t')[-1])
@@ -336,6 +366,7 @@ class LLMAgent:
         self.__future.set_result(ret)
 
     def __ask_for_reanalysis(self, payload: QuestionPayload):
+        # REANALYSIS：当一个 cluster 后续加入了差异页面，重新让 LLM 识别新增控件对应的功能。
         self.logger.info(f"Ask for Reanalysis of Cluster{payload.cluster.get_id()}")
 
         prompt: str = self.__start_prompt + input_explanation_reanalysis1
@@ -347,6 +378,7 @@ class LLMAgent:
         prompt += "```Controls in HTML Description\n"
 
         # get different widgets
+        # 只把与 root state 不同的控件提供给模型，控制 prompt 长度和调用成本。
         widgets_dict: dict[int, WidgetInfo] = {}
         id = 1
         root_state = payload.cluster.get_root_state()
@@ -382,6 +414,7 @@ class LLMAgent:
         json_resp = self.__get_response(prompt)
 
         # process response
+        # 根据模型结果更新功能列表，并把新功能绑定回对应 widget/action listener。
         # update function list, record corresponding state, set function to widget
         # no need to set listener to action,
         # because listener has already been set when other states joined to this cluster
@@ -389,6 +422,7 @@ class LLMAgent:
         # TODO update top clusters
 
     def __get_response(self, prompt: str) -> json:
+        # 统一的大模型调用入口：保存 prompt、重试请求、记录耗时/响应长度、解析 JSON。
         save_content_to_file(self.__QA_file, title='Prompt', content=prompt)
         begin_stamp = time.time()
         try_times = 0
@@ -396,6 +430,7 @@ class LLMAgent:
         while try_times < 5:
             try:
                 chat_completion = self.__client.chat.completions.create(
+                    # temperature=0 保持输出稳定；探索随机性由测试策略而不是模型采样承担。
                     temperature=0,
                     messages=[
                         {
@@ -420,12 +455,14 @@ class LLMAgent:
         # get response
         response = chat_completion.choices[0].message.content
         end_stamp = time.time()
+        # LLM-Interaction.txt 只记录每次调用耗时和响应长度，便于估算成本/吞吐。
         with open(os.path.join(self.__app.output_dir, 'LLM-Interaction.txt'), 'a') as file:
             time_difference = round(end_stamp - begin_stamp, 5)
             file.write(f"{time_difference}, {len(response)}\n")
         self.logger.info(f"Get response:\n{response}")
         save_content_to_file(self.__QA_file, title='Response', content=response)
         # Cut the part between curly brackets
+        # 模型有时会在 JSON 前后加解释文字，这里截取最外层花括号以提高容错性。
         pos = response.find('{')
         if pos != -1:
             response = response[pos:]
@@ -441,6 +478,7 @@ class LLMAgent:
             return self.__get_response(prompt)
 
     def set_future(self, future):
+        # UtgBasedInputPolicy 每次同步等待 LLM 结果前都会重置 Future。
         self.__future = future
 
     def add_tested_function(self):
@@ -448,6 +486,7 @@ class LLMAgent:
         Add target function to tested functions in agent,
         also mark the function in the corresponding cluster as tested
         """
+        # 不论目标是否完全成功，结束一轮 Guidance 后都标记为已尝试，避免反复卡在同一功能。
         self.__tested_functions.add(self.__target_func)
         cluster = self.__utg.find_cluster_by_id(self.__target_id)
         if cluster:
@@ -456,4 +495,5 @@ class LLMAgent:
             self.logger.warning(f"Can't find Cluster{self.__target_id} when marking function({self.__target_func}) as tested")
 
     def clear_executed_events(self):
+        # 一轮目标功能测试结束后清空动作历史，避免影响下一轮目标的 prompt。
         self.__executed_events.clear()

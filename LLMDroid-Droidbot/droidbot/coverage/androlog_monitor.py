@@ -1,3 +1,7 @@
+# 文件作用：
+# 1. 通过监听 logcat 中 AndroLog 插桩日志统计已执行方法数量。
+# 2. 将方法数量转换为覆盖率百分比，并交给 CodeCoverageMonitor 判断增长是否停滞。
+# 3. 用于闭源或经 AndroLog 插桩 APK 的实时覆盖率反馈。
 import time
 from .base_monitor import CodeCoverageMonitor
 

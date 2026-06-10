@@ -1,3 +1,7 @@
+# 文件作用：
+# 1. 定义 DroidBot/LLMDroid 可执行的原子输入事件，如点击、长按、滑动、滚动、输入和 Intent。
+# 2. 负责把策略层选择的动作转换为设备上的实际操作，并记录事件执行前后的状态。
+# 3. 是后续动作级语义建模、GA/退火动作选择和回放机制的基础数据结构。
 import json
 import os
 import random
@@ -98,6 +102,9 @@ class InvalidEventException(Exception):
 class InputEvent(object):
     """
     The base class of all events
+
+    中文说明：InputEvent 是所有“原子动作”的基类。策略层最终都会选择
+    一个具体 InputEvent，并通过 send(device) 交给设备执行。
     """
 
     def __init__(self, action_type: ActionType = ActionType.OTHER):
@@ -108,6 +115,7 @@ class InputEvent(object):
         self.__visit_count: int = 0
 
     def visit(self):
+        # 记录该事件被执行/选中过的次数，供策略避免重复探索同一动作。
         self.__visit_count += 1
 
     def get_visit_count(self) -> int:
@@ -147,6 +155,7 @@ class InputEvent(object):
 
     @staticmethod
     def from_dict(event_dict):
+        # 回放历史事件时，根据 event_type 恢复成具体的事件子类。
         if not isinstance(event_dict, dict):
             return None
         if 'event_type' not in event_dict:
@@ -187,6 +196,9 @@ class InputEvent(object):
 class EventLog(object):
     """
     save an event to local file system
+
+    中文说明：EventLog 包装一次动作执行的完整生命周期：
+    抓取执行前状态、发送动作、抓取执行后状态，并把事件 JSON/截图等写入输出目录。
     """
 
     def __init__(self, device, app, event, profiling_method=None, tag=None):
@@ -224,6 +236,7 @@ class EventLog(object):
 
     def save2dir(self, output_dir=None):
         # Save event
+        # 每个事件会落盘为独立 JSON，UTG 可视化、回放和调试都依赖这些记录。
         if output_dir is None:
             if self.device.output_dir is None:
                 return
@@ -258,6 +271,7 @@ class EventLog(object):
         """
         start sending event
         """
+        # 发送动作前保存 from_state，并构造事件字符串；method profiling 也从这里启动。
         self.from_state = self.device.get_current_state()
         self.start_profiling()
         self.event_str = self.event.get_event_str(self.from_state)
@@ -292,6 +306,7 @@ class EventLog(object):
         """
         finish sending event
         """
+        # 动作执行后保存 to_state，并把事件和相关 view 截图落盘。
         self.stop_profiling()
         self.to_state = self.device.get_current_state()
         self.save2dir()
@@ -331,6 +346,8 @@ class EventLog(object):
 class ManualEvent(InputEvent):
     """
     a manual event
+
+    中文说明：人工操作占位事件，表示这一步由用户手动完成，不会向设备发送自动动作。
     """
 
     def to_description(self) -> str:
@@ -361,6 +378,8 @@ class ManualEvent(InputEvent):
 class ExitEvent(InputEvent):
     """
     an event to stop testing
+
+    中文说明：控制事件，用于主动终止测试流程，不对应具体 UI 控件。
     """
 
     def __init__(self, event_dict=None):
@@ -387,6 +406,8 @@ class ExitEvent(InputEvent):
 class KillAppEvent(InputEvent):
     """
     an event to stop testing
+
+    中文说明：控制事件，用于停止被测 App 并回到 HOME，常用于重启或恢复环境。
     """
 
     def __init__(self, app=None, event_dict=None):
@@ -417,6 +438,8 @@ class KillAppEvent(InputEvent):
 class KeyEvent(InputEvent):
     """
     a key pressing event
+
+    中文说明：Android 系统按键动作，例如 BACK/HOME/MENU。导航失败或页面回退时常用 BACK。
     """
 
     def __init__(self, name=None, event_dict=None):
@@ -447,6 +470,9 @@ class KeyEvent(InputEvent):
 class UIEvent(InputEvent):
     """
     This class describes a UI event of app, such as touch, click, etc
+
+    中文说明：带目标 Widget 的 UI 动作基类。点击、长按、滚动、输入都属于 UIEvent，
+    因此可以被 StateCluster 监听，并和“某个功能是否已测试”关联起来。
     """
 
     def __init__(self, action_type: ActionType = ActionType.OTHER, widget: 'Widget' = None, state: 'DeviceState' = None):
@@ -461,12 +487,14 @@ class UIEvent(InputEvent):
         """
         call from main/child thread
         """
+        # listener 通常是 StateCluster，动作执行后会回调它更新功能测试状态。
         self.__listener = listener
 
     def visit(self):
         super().visit()
         # Because set listener cannot be none, there is no need to lock it here.
         if self.__listener is not None:
+            # UI 动作被执行后通知 cluster，使 cluster 能把绑定的 function 标记为已尝试。
             self.__listener.on_action_executed(self)
 
     def __hash__(self):
@@ -476,6 +504,7 @@ class UIEvent(InputEvent):
         return 0x9e3779b9 + (hashcode1 << 2) ^ (((hashcode2 << 4) ^ (hashcode3 << 3)) << 1)
 
     def to_description(self, html: str = '') -> str:
+        # 面向日志/LLM 的动作描述；html 参数可带上 prompt 中对应的控件行。
         if html:
             return f'{self.action_type.string} {html}'
         elif self._target:
@@ -491,6 +520,7 @@ class UIEvent(InputEvent):
 
     @staticmethod
     def get_random_instance(device, app):
+        # 当 App 不在前台时，随机 UI 动作会先构造启动 Intent，把被测 App 拉回前台。
         if not device.is_foreground(app):
             # if current app is in background, bring it to foreground
             component = app.get_package_name()
@@ -528,6 +558,8 @@ class UIEvent(InputEvent):
 class TouchEvent(UIEvent):
     """
     a touch on screen
+
+    中文说明：最常见的原子 UI 动作，通常由 clickable/checkable/叶子 view 生成。
     """
 
     def __init__(self, x=None, y=None, view=None, event_dict=None):
@@ -546,6 +578,7 @@ class TouchEvent(UIEvent):
         return TouchEvent(x, y)
 
     def send(self, device):
+        # 若事件绑定了 view，则点击 view 中心点；否则点击显式坐标。
         x, y = UIEvent.get_xy(x=self.x, y=self.y, view=self.view)
         device.view_long_touch(x=x, y=y, duration=200)
         return True
@@ -566,6 +599,8 @@ class TouchEvent(UIEvent):
 class SelectEvent(UIEvent):
     """
     select a checkbox
+
+    中文说明：选择/取消选择类动作，底层仍通过短触摸实现，主要兼容旧脚本和回放格式。
     """
 
     def __init__(self, event_type=KEY_SelectEvent, x=None, y=None, view=None, event_dict=None):
@@ -605,6 +640,8 @@ class SelectEvent(UIEvent):
 class LongTouchEvent(UIEvent):
     """
     a long touch on screen
+
+    中文说明：长按动作，用于触发上下文菜单、编辑、删除等普通点击触达不到的入口。
     """
 
     def __init__(self, x=None, y=None, view=None, duration=2000, event_dict=None):
@@ -645,6 +682,8 @@ class LongTouchEvent(UIEvent):
 class SwipeEvent(UIEvent):
     """
     a drag gesture on screen
+
+    中文说明：通用滑动动作，从起点拖到终点；ScrollEvent 是更结构化的方向性滑动。
     """
 
     def __init__(self, start_x=None, start_y=None, start_view=None, end_x=None, end_y=None, end_view=None,
@@ -711,6 +750,8 @@ class SwipeEvent(UIEvent):
 class ScrollEvent(UIEvent):
     """
     swipe gesture
+
+    中文说明：面向可滚动控件的方向性动作，用于发现列表或页面中未显示的控件。
     """
 
     def __init__(self, x=None, y=None, view=None, direction="down", event_dict=None):
@@ -756,6 +797,7 @@ class ScrollEvent(UIEvent):
         return ScrollEvent(x, y, direction)
 
     def send(self, device):
+        # 根据目标 view 的尺寸和方向计算拖拽起止点，再通过 device.view_drag 执行。
         if self.view is not None:
             from .desc.device_state import DeviceState
             width = DeviceState.get_view_width(view_dict=self.view)
@@ -808,6 +850,8 @@ class ScrollEvent(UIEvent):
 class SetTextEvent(UIEvent):
     """
     input text to target UI
+
+    中文说明：输入框动作。默认文本可由 DroidBot 设置，LLM Guidance 阶段也可覆盖 text 字段。
     """
 
     @staticmethod
@@ -833,6 +877,7 @@ class SetTextEvent(UIEvent):
         return desc
 
     def send(self, device):
+        # 先点击输入框获得焦点，再通过输入法写入文本。
         x, y = UIEvent.get_xy(x=self.x, y=self.y, view=self.view)
         touch_event = TouchEvent(x=x, y=y)
         touch_event.send(device)
@@ -856,6 +901,8 @@ class SetTextEvent(UIEvent):
 class IntentEvent(InputEvent):
     """
     An event describing an intent
+
+    中文说明：非 UI 控件动作，通过 am/Intent 启动 Activity、Service 或 Broadcast。
     """
 
     def __init__(self, intent=None, event_dict=None, action_type=ActionType.OTHER):
@@ -888,6 +935,8 @@ class IntentEvent(InputEvent):
 class SpawnEvent(InputEvent):
     """
     An event to spawn then stop testing
+
+    中文说明：分布式测试中的派生事件，要求 master 在其它设备/worker 上继续执行脚本。
     """
 
     def __init__(self, event_dict=None):

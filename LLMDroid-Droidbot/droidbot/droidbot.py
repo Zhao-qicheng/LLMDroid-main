@@ -2,6 +2,10 @@
 # It can be used after AVD was started, app was installed, and adb had been set up properly
 # By configuring and creating a droidbot instance,
 # droidbot will start interacting with Android in AVD like a human
+# 文件作用：
+# 1. 定义 DroidBot 主控制类，负责串起设备、App、环境部署和输入管理器。
+# 2. 管理测试生命周期：初始化、安装 APK、启动探索、超时控制和停止清理。
+# 3. 是 start.py 解析参数后真正进入自动化测试流程的核心入口。
 import logging
 import logging.config
 import os

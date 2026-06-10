@@ -1,3 +1,7 @@
+# 文件作用：
+# 1. 定义 DroidBot 支持的输入策略名称常量，如 monkey、dfs_greedy、bfs_naive、manual、replay 等。
+# 2. 提供 InputPolicy 基类，约束具体策略需要实现 start/generate_event 等流程。
+# 3. 是 InputManager 根据命令行 policy_name 创建具体策略对象的依据。
 import sys
 import json
 import logging

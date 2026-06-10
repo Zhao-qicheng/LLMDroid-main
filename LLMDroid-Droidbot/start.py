@@ -1,5 +1,9 @@
 # helper file of droidbot
 # it parses command arguments and send the options to droidbot
+# 文件作用：
+# 1. 作为 LLMDroid-Droidbot 的命令行入口，解析设备、APK、输出目录、策略等参数。
+# 2. 根据是否启用分布式模式，创建 DroidBot 或 DroidMaster。
+# 3. 将覆盖率模式、LLM/Humanoid 相关参数和运行控制参数传入核心测试流程。
 import argparse
 from droidbot import input_manager
 from droidbot.policy import input_policy
@@ -13,6 +17,7 @@ def parse_args():
     parse command line input
     generate options including host name, port number
     """
+    # 这里仅定义和解析参数，不做设备连接或 APK 安装；真正执行在 main() 中完成。
     parser = argparse.ArgumentParser(description="Start DroidBot to test an Android app.",
                                      formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("-d", action="store", dest="device_serial", required=False,
@@ -47,6 +52,7 @@ def parse_args():
                              ))
 
     # for distributed DroidBot
+    # 分布式模式用于多设备/多 worker 协同；普通单设备测试会走后面的 normal 分支。
     parser.add_argument("-distributed", action="store", dest="distributed", choices=["master", "worker"],
                         help="Start DroidBot in distributed mode.")
     parser.add_argument("-master", action="store", dest="master",
@@ -104,6 +110,7 @@ def main():
     """
     opts = parse_args()
     import os
+    # 启动前先做轻量校验，避免后续初始化设备和环境后才发现 APK 路径错误。
     if not os.path.exists(opts.apk_path):
         print("APK does not exist.")
         return
@@ -119,6 +126,7 @@ def main():
         start_mode = "normal"
 
     if start_mode == "master":
+        # master 模式只负责协调 worker，不直接在本机单独执行完整探索流程。
         droidmaster = DroidMaster(
             app_path=opts.apk_path,
             is_emulator=opts.is_emulator,
@@ -146,6 +154,7 @@ def main():
             code_coverage=opts.code_coverage)
         droidmaster.start()
     else:
+        # 默认 normal/worker 路径：创建 DroidBot，并把所有运行参数传入核心控制类。
         droidbot = DroidBot(
             app_path=opts.apk_path,
             device_serial=opts.device_serial,

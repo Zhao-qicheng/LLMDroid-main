@@ -1,3 +1,7 @@
+# 文件作用：
+# 1. 定义 LLMDroid 中使用的动作类型，如 START、STOP、BACK、CLICK、LONG_CLICK 和各方向滚动。
+# 2. 定义控件 HTML 类型，用于把 Android UI 控件转换为 LLM 可理解的 HTML 描述。
+# 3. 为 InputEvent、DeviceState、Widget 和 LLM 响应解析提供统一枚举。
 from enum import Enum
 
 

@@ -1,5 +1,7 @@
 # Adapting the Tool to Other Dynamic Exploration Techniques 
 
+> 文档作用：说明如何把 LLMDroid 的页面聚类、LLM Agent、覆盖率监控和状态机机制适配到其他动态探索工具中，可作为后续接入 MobSF、GA/退火策略或其他 Android 测试框架时的设计参考。
+
  ![](./imgs/workflow.png)
 
 ## Overview  

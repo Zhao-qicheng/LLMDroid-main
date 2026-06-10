@@ -1,3 +1,7 @@
+# 文件作用：
+# 1. 定义 LLMDroid 对 UI 控件的抽象，封装控件文本、资源 ID、层级、HTML 类型和哈希。
+# 2. 支持将控件转换为 prompt 中使用的 HTML 标签，并记录控件对应的功能语义。
+# 3. 是页面相似度计算、LLM 控件 id 映射和动作功能绑定的基础单位。
 from ..utils import safe_dict_get
 from .action_type import *
 
