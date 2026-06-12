@@ -1,122 +1,140 @@
-# LLMDroid
+# PIPA: LLMDroid + MobSF Dynamic Analysis Driver
 
-**LLMDroid** is a novel testing framework designed to enhance existing automated mobile GUI testing tools by leveraging LLMs more efficiently.
+本项目基于 LLMDroid-Droidbot 做了一个面向 MobSF 动态分析的集成版本。核心目标是让 MobSF 继续负责动态安全分析环境，而让 LLMDroid 作为外部 UI 驱动器接入同一个模拟器，自动探索 App 页面，从而帮助 MobSF 收集到更完整的运行时行为、网络请求和 API 调用信息。
 
-- We applied LLMDroid to three popular open-source Android automated testing tools: **Droidbot**, **Humanoid** (based on Droidbot), and **Fastbot2**. See [Usage](#usage) for details.
+## 核心思路
 
-- If you want to adapt LLMDroid to other testing tools, refer to the documentation: [`Adapting LLMDroid to other tools `](./documents/Adapting_LLMDroid_to_Other_Tools.md)
+传统 MobSF 动态分析依赖人工点击或简单自动化操作来触发 App 行为。对于页面较多、流程较深、需要连续交互的 App，这种方式容易覆盖不足。
 
-- LLMDroid supports instrumented APKs using **AndroLog** and **Jacoco**. For detailed steps, check: [`Instrumentation Documentation`](./documents/Instrumentation.md).
+本项目新增了 `-external_driver` 模式，使 LLMDroid 可以在 MobSF 动态分析已经启动的情况下，通过 ADB 接管 UI 探索，但不破坏 MobSF 当前的分析会话：
 
+- MobSF 负责 APK 安装、启动动态分析、代理抓包、Frida/API Monitor、运行时日志和报告生成。
+- LLMDroid 连接同一个 Android 设备，读取当前 UI 状态，构建 UTG 页面状态图，并根据 `dfs_greedy` 等策略发送点击、输入、返回等事件。
+- LLMDroid 在外部驱动模式下不会安装、卸载、强制停止目标 App，避免中断 MobSF 的动态分析上下文。
 
+一句话概括：MobSF 做安全分析，LLMDroid 做智能探索。
 
-## :file_folder:File Structure
+## 与原 LLMDroid 的主要差异
+
+本仓库围绕 MobSF 集成增加了 `external_driver` 参数，并把它传递到 DroidBot 生命周期、输入策略和 UTG 路径规划中。
+
+关键行为如下：
+
+- 跳过 APK 安装：`DroidBot.start()` 中检测到 `external_driver=True` 后不再执行 `install_app()`。
+- 保留目标 App：外部驱动模式下强制 `keep_app=True`，停止 LLMDroid 后不会卸载 App。
+- 避免首次杀进程：`InputPolicy.start()` 中第一步不再发送 `KillAppEvent`。
+- 避免探索失败时 force-stop：`dfs_greedy`、`bfs_greedy`、`dfs_naive`、`bfs_naive` 在外部驱动模式下优先发送 `BACK`，而不是停止目标 App。
+- 避免 LLM/UTG 导航前插入 STOP：`UTG.convert_path()` 在外部驱动模式下不会在导航路径开头添加停止 App 的事件。
+- 提供 PowerShell 启动脚本：`LLMDroid-Droidbot/run_mobsf_external_driver.ps1` 封装了常用启动参数。
+
+## 相关文件
 
 ```text
-LLMDroid/
-├── ExperimentalDataset/
-│   ├── configs/           		# Pre-configured 'config.json' files for dataset apps
-│   └── README.md         		# Google Drive link for instrumented APKs and detailed experimental results
-├── LLMDroid-Droidbot/			# Directory for source code of LLMDroid-Droidbot
-├── LLMDroid-Humanoid/			# Directory for source code of LLMDroid-Humanoid
-├── LLMDroid-Fastbot/			# Directory for source code of LLMDroid-Fastbot
-├── JacocoBridge/				# The Jacoco implementation to computes real-time code coverage from '.ec files'. 
-	│   ├── src/           		# Source code of JacocoBridge
-	│   ├── JacocoBridge.jar    # JAR file
-│   └── README.md         		# Workflow and Usage of JacocoBridge
-├── documents/
+.
+├── LLMDroid-Droidbot/
+│   ├── start.py                         # 命令行入口，新增 -external_driver 和 -code_coverage
+│   ├── run_mobsf_external_driver.ps1    # MobSF 外部驱动模式启动脚本
+│   └── droidbot/
+│       ├── droidbot.py                  # 跳过安装、保留 App、传递 external_driver
+│       ├── input_manager.py             # 创建策略时传递 external_driver
+│       ├── desc/utg.py                  # UTG 路径规划避免 STOP
+│       └── policy/
+│           ├── input_policy.py          # 避免首次 KillAppEvent
+│           ├── utg_greedy_search_policy.py
+│           ├── utg_naive_search_policy.py
+│           └── manual_policy.py
+├── input_apk/                           # 可放置待分析 APK，默认已被 .gitignore 忽略
 └── README.md
 ```
 
+## 环境要求
 
+- Windows 10/11 或 Linux
+- Python 3.9+
+- ADB 可用，并且能够连接 MobSF 使用的 Android 设备
+- MobSF 已安装并可以启动 Dynamic Analyzer
+- LLMDroid-Droidbot 依赖：
 
-## :computer:Experimental Environment
-
-Here is the experimental environment we have tested.
-
-### Operating System
-
-- Ubuntu 20.04
-- Also tested on Windows 10/11
-
-### Python
-
-- LLMDroid-Droidbot and LLMDroid-Humanoid is compatible with **Python >= 3.9**
-
-### Android Environment
-
-- Command Line Tool Used: ADB, AAPT, AAPT2
-
-
-
-## :rocket:Usage
-
-### Config
-
-First, you need to prepare a `config.json` file before you test an app. 
-
-```json
-{
-  "AppName": "Fing",
-  "Description": "This app is a networking toolset app that can scan devices on the network, assess network status, and analyze network security. It also provides many useful utilities such as ping, port scanning, and speed test.",
-  "ApiKey": "",
-  "TotalMethod": 62491,
-  "Tag": "FING_SUPER_LOG"
-}
-```
-
-- **AppName**: The app you want to test.
-- **Description**: A brief introduction to the app, including its main features and purposes. This helps the LLM better understand the task and improve the testing effectiveness.
-- **ApiKey**: The API Key used to invoke the LLM.
-- **TotalMethod**: The total number of methods in the app after instrumentation. For apps in the Dataset, this can be found in the table within `ExperimentalDataset`. For other apps, it can be obtained through the AndroLog tool after instrumentation is completed.
-- **Tag**: The log tag specified during the app’s instrumentation, used for real-time code coverage statistics. For apps in the Dataset, this can be found in the table within `ExperimentalDataset`. For other apps, it can be specified before using the AndroLog tool for instrumentation.
-- **ClassFilePath**: The **`.class`** files generated during APK compilation. You can find them in the `app\\build\\intermediates\\javac\\debug\\classes `directory under your app project. You may copy this directory to another location, as long as LLMDroid can access it.
-- **EcFilePath**: The directory where the coverage file is generated during runtime when using Jacoco instrumentation. This must match the location specified when modifying the app's source code. It is recommended to use the path returned by `getExternalFilesDir(null).getPath()`, typically `/storage/emulated/0/Android/data/<package name>/files`.
-- **Model: ** The model used, defaults to `gpt-4o-mini`.
-- **BaseUrl:** The base URL for API calls. This parameter, along with the "Model" parameter, allows you to call non-OpenAI models as long as the third-party service supports the OpenAI API specification.
-
-
-
-**Note:**
-
-- **AndroLog-instrumented apps**: Set `Tag` + `TotalMethod`.  (`ClassFilePath` and `EcFilePath` are not required)
-- **Jacoco-instrumented apps**: Set `ClassFilePath` + `EcFilePath`.  (`Tag` and `TotalMethod` are not required)
-- Config templates are available in `ExperimentalDataset/configs` (rename to `config.json` before use).
-
-
-
-### LLMDroid-Droidbot
-
-- Install required modules
-
-```shell
+```bash
 pip install openai androguard networkx Pillow
 ```
 
-- Make sure the `config.json` file is under the root path of LLMDroid-Droidbot.
+如果使用 LLM Guidance，需要在 `LLMDroid-Droidbot/config.json` 中配置 App 描述和 API Key。如果只想先配合 MobSF 做普通 UI 探索，推荐使用 `-code_coverage time`，不需要 AndroLog/Jacoco 插桩。
 
-- Make sure the `JacocoBridge.jar` file is under the root path of LLMDroid-Droidbot.
+## 推荐运行流程
 
-- Enter the `LLMDroid-Droidbot` directory and run the following comand:
+### 1. 启动 MobSF 动态分析
 
-```shell
-python start.py -d <AVD_SERIAL> -a <APK_FILE> -o <result_dir> -timeout 3600 -interval 3 -count 100000 -keep_app -keep_env -policy dfs_greedy -grant_perm
+先在 MobSF 中上传 APK，并进入 Dynamic Analyzer。确保 MobSF 已经完成以下工作：
+
+- 目标 App 已安装到模拟器或真机。
+- MobSF 的动态分析环境已经启动。
+- 需要的代理、Frida/API Monitor、证书或 Hook 环境已经配置完成。
+- 设备可以通过本机 `adb devices` 看到。
+
+示例：
+
+```bash
+adb devices
 ```
 
-(Parameters are same as Droidbot)	
+如果 MobSF 使用的是远程或网络设备，可以先连接：
 
-#### MobSF External Driver Mode
+```bash
+adb connect 10.30.58.20:6556
+```
 
-Use this mode when MobSF is already running dynamic analysis and LLMDroid should only drive the same emulator through ADB. MobSF keeps ownership of installation, proxy capture, Frida/API Monitor, and report generation. LLMDroid connects to the same device, reads the UI, and sends exploration events.
+### 2. 启动 LLMDroid 外部驱动
 
-Start MobSF dynamic analysis first, then run LLMDroid-Droidbot:
+进入 `LLMDroid-Droidbot` 目录：
 
 ```powershell
 cd .\LLMDroid-Droidbot
+```
+
+使用脚本启动：
+
+```powershell
 .\run_mobsf_external_driver.ps1
 ```
 
-Equivalent command:
+脚本默认参数如下：
+
+```text
+DeviceSerial = 10.30.58.20:6556
+OutputDir    = output-mobsf-external
+Policy       = dfs_greedy
+CodeCoverage = time
+Timeout      = 3600
+Interval     = 3
+Count        = 100000
+```
+
+如果没有显式传入 `-ApkPath`，脚本会自动读取仓库根目录 `input_apk` 下的第一个 `.apk` 文件。
+
+指定 APK 和设备的示例：
+
+```powershell
+.\run_mobsf_external_driver.ps1 `
+  -DeviceSerial "127.0.0.1:7555" `
+  -ApkPath "..\input_apk\your_app.apk" `
+  -OutputDir "output-mobsf-external" `
+  -Policy "dfs_greedy" `
+  -CodeCoverage "time" `
+  -Timeout 3600 `
+  -Interval 3 `
+  -Count 100000
+```
+
+### 3. 等待 MobSF 收集动态行为
+
+LLMDroid 启动后会通过 ADB 对同一个设备发送 UI 事件。MobSF 会继续在后台记录 App 的运行时行为，包括网络请求、文件访问、敏感 API、日志、Hook 结果等。
+
+探索完成后，在 MobSF 页面中停止动态分析并生成报告。
+
+## 等价的手动命令
+
+如果不使用 PowerShell 脚本，可以直接执行：
 
 ```powershell
 python start.py `
@@ -131,90 +149,87 @@ python start.py `
   -count 100000
 ```
 
-`-external_driver` skips APK installation, keeps the app installed after LLMDroid exits, avoids the first kill-app event, and prevents the main DFS/BFS strategies from force-stopping the target app when exploration stalls.
+其中最重要的是 `-external_driver`。没有这个参数时，LLMDroid 会按普通 DroidBot/LLMDroid 流程管理 App 生命周期，可能安装、停止或卸载目标 App，从而影响 MobSF 分析。
 
-The exploration policy is still selectable with `-policy`. Stable options are `dfs_greedy`, `bfs_greedy`, `dfs_naive`, `bfs_naive`, `manual`, `monkey`, `replay`, and `none`. The existing `memory_guided` and `llm_guided` entries remain available in code, but should be validated separately for your environment.
+## 参数说明
 
-The coverage trigger is still selectable with `-code_coverage`:
+| 参数 | 说明 |
+| --- | --- |
+| `-d` | ADB 设备序列号，例如 `127.0.0.1:7555` 或 `10.30.58.20:6556` |
+| `-a` | APK 路径。外部驱动模式仍需要 APK 路径来解析包名、入口 Activity 等信息 |
+| `-o` | LLMDroid 输出目录，保存状态截图、事件日志、UTG 等结果 |
+| `-external_driver` | MobSF 集成核心参数，表示 LLMDroid 只作为外部 UI 驱动器运行 |
+| `-policy` | 探索策略，推荐 `dfs_greedy` |
+| `-code_coverage` | 覆盖率触发模式，MobSF 集成推荐 `time` |
+| `-timeout` | 运行时间上限，单位秒 |
+| `-interval` | 两个事件之间的间隔，单位秒 |
+| `-count` | 最多发送的事件数量 |
 
-- `time`: no instrumentation required; recommended for MobSF external-driver runs.
-- `androlog`: requires an AndroLog-instrumented APK and `Tag`/`TotalMethod` in `config.json`.
-- `jacoco`: requires Jacoco instrumentation, `ClassFilePath`/`EcFilePath`, and `JacocoBridge.jar`.
+## 探索策略
 
+当前代码中稳定可用的策略包括：
 
+- `dfs_greedy`：默认推荐，优先探索当前页面未触发过的事件。
+- `bfs_greedy`：贪心广度优先。
+- `dfs_naive`：朴素深度优先。
+- `bfs_naive`：朴素广度优先。
+- `manual`：人工操作并保存状态。
+- `monkey`：调用 Android 系统 Monkey。
+- `replay`：回放已有 DroidBot 输出。
+- `none`：只启动连接流程，不主动发送事件。
 
-### LLMDroid-Humanoid
+`memory_guided` 和 `llm_guided` 在代码中保留，但依赖额外环境，建议单独验证后再用于 MobSF 联动。
 
-- Install required modules
+## 覆盖率模式
 
-```shell
-pip install openai androguard networkx Pillow
+`-code_coverage` 支持三个值：
+
+- `time`：不需要插桩，按时间或探索节奏触发 LLMDroid 逻辑。MobSF 外部驱动模式推荐使用。
+- `androlog`：需要 AndroLog 插桩 APK，并在 `config.json` 中配置 `Tag` 和 `TotalMethod`。
+- `jacoco`：需要 Jacoco 插桩、`JacocoBridge.jar`，并在 `config.json` 中配置 `ClassFilePath` 和 `EcFilePath`。
+
+在 MobSF 动态分析场景下，通常不需要 LLMDroid 自己统计代码覆盖率，因为 MobSF 的重点是运行时安全行为和动态分析报告。因此推荐：
+
+```bash
+-code_coverage time
 ```
 
-- Make sure the `config.json` file is under the root path of LLMDroid-Humanoid.
-- Make sure the `JacocoBridge.jar` file is under the root path of LLMDroid-Humanoid.
-- Deploy and start the Humanoid agent. (For more details, see [Humanoid](https://github.com/the-themis-benchmarks/Humanoid))
+## config.json
 
-- Enter the `LLMDroid-Humanoid` directory and run the following comand:
+如果只使用 `dfs_greedy` 并设置 `-code_coverage time`，一般不需要复杂配置。
 
-```shell
-python start.py -d <AVD_SERIAL> -a <APK_FILE> -o <result_dir> -timeout 3600 -interval 3 -count 100000 -keep_app -keep_env -policy dfs_greedy -grant_perm -humanoid 192.168.50.133:50405
-```
+如果需要 LLM Guidance 或插桩覆盖率，可以在 `LLMDroid-Droidbot/config.json` 中配置：
 
-(Parameters are same as Humanoid)	
-
-The only difference from LLMDroid-Droidbot is the addition of the parameter `-humanoid`, which indicates the IP address and the listening port of the humanoid agent. 
-
-
-
-### LLMDroid-Fastbot
-
-If you are simply running the LLMDroid-Fastbot tool, the steps are quite straightforward.
-
-- Push artifacts into your device:  
-    - The `faruzan` directory can be renamed as desired.  
-    - The `config.json` file must be placed in `/sdcard` and cannot be renamed.  
-    - If you are using a Jacoco-instrumented APK, you need to copy the **classes files** to the `/sdcard` directory so that LLMDroid-Fastbot can access them during runtime. Additionally, ensure that the **`ClassFilePath`** in `config.json` is correctly set to this location.
-
-```shell
-adb shell mkdir /sdcard/faruzan
-adb push config.json /sdcard/config.json
-adb push monkey/libs/* /sdcard/faruzan
-adb push monkeyq.jar /sdcard/faruzan/monkeyq.jar
-adb push fastbot-thirdpart.jar /sdcard/faruzan/fastbot-thirdpart.jar
-adb push framework.jar /sdcard/faruzan/framework.jar
-adb push libs/* /data/local/tmp/
-```
-
-- Run LLMDroid-Fastbot with the following command:
-
-```shell
-adb shell CLASSPATH=/sdcard/faruzan/monkeyq.jar:/sdcard/faruzan/framework.jar:/sdcard/faruzan/fastbot-thirdpart.jar:/sdcard/faruzan/org.jacoco.core-0.8.8.jar:/sdcard/faruzan/asm-9.2.jar:/sdcard/faruzan/asm-analysis-9.2.jar:/sdcard/faruzan/asm-commons-9.2.jar:/sdcard/faruzan/asm-tree-9.2.jar exec app_process /system/bin com.android.commands.monkey.Monkey -p $app_package_name --agent reuseq --use-code-coverage androlog --running-minutes 5 --throttle 3000 --output-directory $mobile_output_dir -v -v --bugreport
-```
-
-- Special Parameters: (Other parameters are consistent with Fastbot2. For more details, refer to the [Fastbot_Android](https://github.com/bytedance/Fastbot_Android).)  
-    - `--use-code-coverage`: Specifies the real-time code coverage monitoring method. The following values are supported:  
-        - `androlog`: Uses the androlog method. For closed-source apps, the APK must be instrumented using the androlog tool. Additionally, `Tag` and `TotalMethod` must be set in `config.json`.  
-        - `jacoco`: Uses the jacoco method. For open-source apps, the source code must be modified and recompiled.  
-        - `time`: Disables real-time code coverage monitoring. Used for debugging, where LLM Guidance mode is triggered at specified intervals.
-
-
-
-However, if you wish to modify the code and compile it, you will need to install additional dependencies. For detailed steps, please refer to the README file under LLMDroid-Fastbot.
-
-## :book:Publications
-
-If you use our work in your research, please kindly cite us as:
-
-```bibtex
-@article{wang2025llmdroid,
-  title=	{LLMDroid: Enhancing Automated Mobile App GUI Testing Coverage with Large Language Model Guidance},
-  author=	{Wang, Chenxu and Liu, Tianming and Zhao, Yanjie and Yang, Minghui and Wang, Haoyu},
-  journal=	{Proceedings of the ACM on Software Engineering},
-  volume=	{2},
-  number=	{FSE},
-  pages=	{1001--1022},
-  year=		{2025},
-  publisher={ACM New York, NY, USA}
+```json
+{
+  "AppName": "ExampleApp",
+  "Description": "A short description of the app and its main features.",
+  "ApiKey": "",
+  "Model": "gpt-4o-mini",
+  "BaseUrl": "",
+  "TotalMethod": 0,
+  "Tag": "",
+  "ClassFilePath": "",
+  "EcFilePath": ""
 }
 ```
+
+字段说明：
+
+- `AppName`：App 名称。
+- `Description`：App 功能描述，用于帮助 LLM 理解测试目标。
+- `ApiKey`：调用 LLM 的 API Key。
+- `Model`：模型名称。
+- `BaseUrl`：兼容 OpenAI API 格式的服务地址。
+- `TotalMethod` / `Tag`：AndroLog 模式使用。
+- `ClassFilePath` / `EcFilePath`：Jacoco 模式使用。
+
+## 注意事项
+
+- 必须先启动 MobSF 动态分析，再启动 LLMDroid 外部驱动。
+- `-external_driver` 只支持普通单设备模式，不支持 distributed master/worker。
+- 外部驱动模式不会安装 APK，所以 MobSF 侧必须已经安装并启动目标 App。
+- `-a` 参数仍然必须传入 APK 文件，因为 LLMDroid 需要从 APK 中解析包名和启动信息。
+- 如果设备序列号不一致，LLMDroid 可能连接到错误设备。运行前请用 `adb devices` 确认。
+- 如果 App 长时间跳出目标页面，LLMDroid 会优先尝试 `BACK`，而不是 force-stop App。
+- `input_apk/` 和 `output-mobsf-external/` 已在 `.gitignore` 中忽略，避免把 APK 和运行结果提交到仓库。
