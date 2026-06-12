@@ -105,6 +105,42 @@ python start.py -d <AVD_SERIAL> -a <APK_FILE> -o <result_dir> -timeout 3600 -int
 
 (Parameters are same as Droidbot)	
 
+#### MobSF External Driver Mode
+
+Use this mode when MobSF is already running dynamic analysis and LLMDroid should only drive the same emulator through ADB. MobSF keeps ownership of installation, proxy capture, Frida/API Monitor, and report generation. LLMDroid connects to the same device, reads the UI, and sends exploration events.
+
+Start MobSF dynamic analysis first, then run LLMDroid-Droidbot:
+
+```powershell
+cd .\LLMDroid-Droidbot
+.\run_mobsf_external_driver.ps1
+```
+
+Equivalent command:
+
+```powershell
+python start.py `
+  -d 10.30.58.20:6556 `
+  -a ..\input_apk\your_app.apk `
+  -o output-mobsf-external `
+  -external_driver `
+  -policy dfs_greedy `
+  -code_coverage time `
+  -timeout 3600 `
+  -interval 3 `
+  -count 100000
+```
+
+`-external_driver` skips APK installation, keeps the app installed after LLMDroid exits, avoids the first kill-app event, and prevents the main DFS/BFS strategies from force-stopping the target app when exploration stalls.
+
+The exploration policy is still selectable with `-policy`. Stable options are `dfs_greedy`, `bfs_greedy`, `dfs_naive`, `bfs_naive`, `manual`, `monkey`, `replay`, and `none`. The existing `memory_guided` and `llm_guided` entries remain available in code, but should be validated separately for your environment.
+
+The coverage trigger is still selectable with `-code_coverage`:
+
+- `time`: no instrumentation required; recommended for MobSF external-driver runs.
+- `androlog`: requires an AndroLog-instrumented APK and `Tag`/`TotalMethod` in `config.json`.
+- `jacoco`: requires Jacoco instrumentation, `ClassFilePath`/`EcFilePath`, and `JacocoBridge.jar`.
+
 
 
 ### LLMDroid-Humanoid
@@ -182,4 +218,3 @@ If you use our work in your research, please kindly cite us as:
   publisher={ACM New York, NY, USA}
 }
 ```
-

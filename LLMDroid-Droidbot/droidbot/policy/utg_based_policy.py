@@ -42,8 +42,9 @@ class UtgBasedInputPolicy(InputPolicy):
     UTG 探索动作选择，但本类额外接入页面聚类、覆盖率停滞检测和 LLM Guidance。
     """
 
-    def __init__(self, device, app, random_input, code_coverage: Literal['time', 'androlog', 'jacoco']):
-        super(UtgBasedInputPolicy, self).__init__(device, app)
+    def __init__(self, device, app, random_input, code_coverage: Literal['time', 'androlog', 'jacoco'],
+                 external_driver=False):
+        super(UtgBasedInputPolicy, self).__init__(device, app, external_driver=external_driver)
         self.random_input = random_input
         self.script = None
         self.master = None
@@ -51,7 +52,7 @@ class UtgBasedInputPolicy(InputPolicy):
         self.last_event = None
         self.last_state = None
         self.current_state: Optional[DeviceState] = None
-        self.utg = UTG(device=device, app=app, random_input=random_input)
+        self.utg = UTG(device=device, app=app, random_input=random_input, external_driver=external_driver)
         self.script_event_idx = 0
         if self.device.humanoid is not None:
             self.humanoid_view_trees = []

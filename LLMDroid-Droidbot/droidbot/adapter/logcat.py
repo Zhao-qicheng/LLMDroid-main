@@ -29,13 +29,17 @@ class Logcat(Adapter):
             self.out_file = "%s/logcat.txt" % device.output_dir
 
     def connect(self):
-        self.device.adb.run_cmd("logcat -c")
+        try:
+            self.device.adb.run_cmd("logcat -c")
+        except subprocess.CalledProcessError as e:
+            self.logger.warning("Failed to clear logcat buffer, continue without clearing: %s", e)
         self.process = subprocess.Popen(["adb", "-s", self.device.serial, "logcat", "-v", "threadtime", "*:I"],
                                         stdin=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
                                         stdout=subprocess.PIPE)
         import threading
         listen_thread = threading.Thread(target=self.handle_output)
+        listen_thread.daemon = True
         listen_thread.start()
 
     def disconnect(self):
@@ -75,4 +79,3 @@ class Logcat(Adapter):
     def parse_line(self, logcat_line):
         for parser in self.parsers:
             parser.parse(logcat_line)
-

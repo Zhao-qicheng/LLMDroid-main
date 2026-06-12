@@ -12,8 +12,9 @@ class UtgNaiveSearchPolicy(UtgBasedInputPolicy):
     depth-first strategy to explore UFG (old)
     """
 
-    def __init__(self, device, app, random_input, search_method, code_coverage):
-        super(UtgNaiveSearchPolicy, self).__init__(device, app, random_input, code_coverage)
+    def __init__(self, device, app, random_input, search_method, code_coverage, external_driver=False):
+        super(UtgNaiveSearchPolicy, self).__init__(device, app, random_input, code_coverage,
+                                                   external_driver=external_driver)
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.explored_views = set()
@@ -64,6 +65,11 @@ class UtgNaiveSearchPolicy(UtgBasedInputPolicy):
 
         # if no view can be selected, restart the app
         if view_to_touch is None:
+            if self.external_driver:
+                self.last_event_flag += EVENT_FLAG_NAVIGATE
+                self.last_event_str = EVENT_FLAG_NAVIGATE
+                self.logger.info("External driver mode: no view selected, sending BACK instead of stopping app.")
+                return KeyEvent(name="BACK")
             stop_app_intent = self.app.get_stop_intent()
             self.last_event_flag += EVENT_FLAG_STOP_APP
             self.last_event_str = EVENT_FLAG_STOP_APP

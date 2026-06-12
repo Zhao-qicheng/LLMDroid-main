@@ -50,12 +50,13 @@ class UTG(object):
     LLMDroid 的 Guidance 阶段只让 LLM 选择目标，实际到目标页的路径由 UTG 本地计算。
     """
 
-    def __init__(self, device, app, random_input):
+    def __init__(self, device, app, random_input, external_driver=False):
         # self.logger = logging.getLogger(self.__class__.__name__)
         self.logger = get_logger()
         self.device = device
         self.app = app
         self.random_input = random_input
+        self.external_driver = external_driver
 
         self.G = nx.DiGraph()
         self.G2 = nx.DiGraph()  # graph with same-structure states clustered
@@ -572,12 +573,13 @@ class UTG(object):
                 latest_time = max(value['time'], latest_time)
                 steps.append(Step(node=next_node_state.get_id(), event=value['event'], created_time=value['time']))
 
-        # add STOP event
-        # 路径开头插入 STOP/重启动作，尽量让导航从稳定初始状态开始。
-        steps.insert(0, Step(node=self.G.nodes[raw_path[0]]['state'].get_id(),
-                             event=IntentEvent(intent=self.app.get_stop_intent(),
-                                               action_type=ActionType.STOP),
-                             created_time=time.time()))
+        if not self.external_driver:
+            # add STOP event
+            # 路径开头插入 STOP/重启动作，尽量让导航从稳定初始状态开始。
+            steps.insert(0, Step(node=self.G.nodes[raw_path[0]]['state'].get_id(),
+                                 event=IntentEvent(intent=self.app.get_stop_intent(),
+                                                   action_type=ActionType.STOP),
+                                 created_time=time.time()))
 
         path = Path(length=len(steps), latest_time=latest_time, steps=steps)
         return path

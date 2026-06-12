@@ -9,7 +9,6 @@ from droidbot import input_manager
 from droidbot.policy import input_policy
 from droidbot import env_manager
 from droidbot import DroidBot
-from droidbot.droidmaster import DroidMaster
 
 
 def parse_args():
@@ -41,6 +40,10 @@ def parse_args():
                              '  \"%s\" -- Explore UI using a greedy depth-first strategy;\n'
                              '  \"%s\" -- Explore UI using a naive breadth-first strategy;\n'
                              '  \"%s\" -- Explore UI using a greedy breadth-first strategy;\n'
+                             '  \"%s\" -- Replay events from a previous DroidBot output;\n'
+                             '  \"%s\" -- Save states while the user manually interacts with the device;\n'
+                             '  \"%s\" -- Memory-guided exploration, requires extra environment validation;\n'
+                             '  \"%s\" -- LLM-guided exploration, requires input_policy3.py;\n'
                              %
                              (
                                  input_policy.POLICY_NONE,
@@ -49,6 +52,10 @@ def parse_args():
                                  input_policy.POLICY_GREEDY_DFS,
                                  input_policy.POLICY_NAIVE_BFS,
                                  input_policy.POLICY_GREEDY_BFS,
+                                 input_policy.POLICY_REPLAY,
+                                 input_policy.POLICY_MANUAL,
+                                 input_policy.POLICY_MEMORY_GUIDED,
+                                 input_policy.POLICY_LLM_GUIDED,
                              ))
 
     # for distributed DroidBot
@@ -81,6 +88,9 @@ def parse_args():
                         help="Keep the app on the device after testing.")
     parser.add_argument("-keep_env", action="store_true", dest="keep_env",
                         help="Keep the test environment (eg. minicap and accessibility service) after testing.")
+    parser.add_argument("-external_driver", action="store_true", dest="external_driver",
+                        help="Run as an external UI driver for another analyzer such as MobSF. "
+                             "This skips APK install/uninstall and avoids killing the target app.")
     parser.add_argument("-use_method_profiling", action="store", dest="profiling_method",
                         help="Record method trace for each event. can be \"full\" or a sampling rate.")
     parser.add_argument("-grant_perm", action="store_true", dest="grant_perm",
@@ -118,6 +128,9 @@ def main():
         print("To run in CV mode, you need to specify an output dir (using -o option).")
 
     if opts.distributed:
+        if opts.external_driver:
+            print("-external_driver is only supported in normal single-device mode.")
+            return
         if opts.distributed == "master":
             start_mode = "master"
         else:
@@ -126,6 +139,8 @@ def main():
         start_mode = "normal"
 
     if start_mode == "master":
+        from droidbot.droidmaster import DroidMaster
+
         # master 模式只负责协调 worker，不直接在本机单独执行完整探索流程。
         droidmaster = DroidMaster(
             app_path=opts.apk_path,
@@ -141,7 +156,7 @@ def main():
             event_count=opts.count,
             cv_mode=opts.cv_mode,
             debug_mode=opts.debug_mode,
-            keep_app=opts.keep_app,
+            keep_app=opts.keep_app or opts.external_driver,
             keep_env=opts.keep_env,
             profiling_method=opts.profiling_method,
             grant_perm=opts.grant_perm,
@@ -179,7 +194,8 @@ def main():
             humanoid=opts.humanoid,
             ignore_ad=opts.ignore_ad,
             replay_output=opts.replay_output,
-            code_coverage=opts.code_coverage)
+            code_coverage=opts.code_coverage,
+            external_driver=opts.external_driver)
         droidbot.start()
     return
 

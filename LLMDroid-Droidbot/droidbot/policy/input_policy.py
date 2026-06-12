@@ -50,11 +50,12 @@ class InputPolicy(object):
     It should call AppEventManager.send_event method continuously
     """
 
-    def __init__(self, device, app):
+    def __init__(self, device, app, external_driver=False):
         #self.logger = logging.getLogger(self.__class__.__name__)
         self.logger = get_logger()
         self.device = device
         self.app = app
+        self.external_driver = external_driver
         self.action_count = 0
         self.master = None
 
@@ -72,7 +73,7 @@ class InputPolicy(object):
                 #     event = KeyEvent(name="HOME")
                 # elif self.action_count == 1 and self.master is None:
                 #     event = IntentEvent(self.app.get_start_intent())
-                if self.action_count == 0 and self.master is None:
+                if self.action_count == 0 and self.master is None and not self.external_driver:
                     event = KillAppEvent(app=self.app)
                 else:
                     event = self.generate_event()

@@ -16,8 +16,9 @@ class UtgGreedySearchPolicy(UtgBasedInputPolicy):
     仍然调用这里选择动作，只有覆盖率/时间触发后才切到 LLM Guidance。
     """
 
-    def __init__(self, device, app, random_input, search_method, code_coverage):
-        super(UtgGreedySearchPolicy, self).__init__(device, app, random_input, code_coverage=code_coverage)
+    def __init__(self, device, app, random_input, search_method, code_coverage, external_driver=False):
+        super(UtgGreedySearchPolicy, self).__init__(device, app, random_input, code_coverage=code_coverage,
+                                                    external_driver=external_driver)
         #self.logger = logging.getLogger(self.__class__.__name__)
         self.logger = get_logger()
         self.search_method = search_method
@@ -82,7 +83,7 @@ class UtgGreedySearchPolicy(UtgBasedInputPolicy):
 
             if self.__num_steps_outside > MAX_NUM_STEPS_OUTSIDE:
                 # If the app has not been in foreground for too long, try to go back
-                if self.__num_steps_outside > MAX_NUM_STEPS_OUTSIDE_KILL:
+                if self.__num_steps_outside > MAX_NUM_STEPS_OUTSIDE_KILL and not self.external_driver:
                     stop_app_intent = self.app.get_stop_intent()
                     go_back_event = IntentEvent(stop_app_intent, action_type=ActionType.STOP)
                 else:
@@ -132,6 +133,11 @@ class UtgGreedySearchPolicy(UtgBasedInputPolicy):
             self.logger.info("Trying random event.")
             random.shuffle(possible_events)
             return possible_events[0]
+
+        if self.external_driver:
+            self.logger.info("External driver mode: no exploration target, sending BACK instead of stopping app.")
+            self.__event_trace += EVENT_FLAG_NAVIGATE
+            return KeyEvent(name="BACK")
 
         # If couldn't find a exploration target, stop the app
         stop_app_intent = self.app.get_stop_intent()

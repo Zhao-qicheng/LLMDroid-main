@@ -512,8 +512,9 @@ class Memory:
 
 
 class MemoryGuidedPolicy(UtgBasedInputPolicy):
-    def __init__(self, device, app, random_input, code_coverage):
-        super(MemoryGuidedPolicy, self).__init__(device, app, random_input, code_coverage)
+    def __init__(self, device, app, random_input, code_coverage, external_driver=False):
+        super(MemoryGuidedPolicy, self).__init__(device, app, random_input, code_coverage,
+                                                 external_driver=external_driver)
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.memory = Memory(utg=self.utg, app=self.app)
@@ -559,7 +560,7 @@ class MemoryGuidedPolicy(UtgBasedInputPolicy):
             self._num_steps_outside += 1
             if self._num_steps_outside > MAX_NUM_STEPS_OUTSIDE:
                 # If the app has not been in foreground for too long, try to go back
-                if self._num_steps_outside > MAX_NUM_STEPS_OUTSIDE_KILL:
+                if self._num_steps_outside > MAX_NUM_STEPS_OUTSIDE_KILL and not self.external_driver:
                     stop_app_intent = self.app.get_stop_intent()
                     go_back_event = IntentEvent(stop_app_intent, action_type=ActionType.STOP)
                 else:
@@ -686,8 +687,10 @@ class MemoryGuidedPolicy(UtgBasedInputPolicy):
                 self.memory.known_transitions.pop(action_str)
             return None
         # elif normal_nav_steps_len > restart_nav_steps_len:  # prefer shortest path
-        elif normal_nav_steps_len >= MAX_NAV_STEPS:  # prefer normal navigation
+        elif normal_nav_steps_len >= MAX_NAV_STEPS and not self.external_driver:  # prefer normal navigation
             nav_steps = [(current_state, KillAppEvent(app=self.app))] + restart_nav_steps
+        elif normal_nav_steps_len >= MAX_NAV_STEPS:
+            return None
         else:
             nav_steps = normal_nav_steps
         return nav_steps + [(target_state, target_action)]
@@ -746,4 +749,3 @@ class MemoryGuidedPolicy(UtgBasedInputPolicy):
 #     @abstractmethod
 #     def start_episode(self):
 #         pass
-

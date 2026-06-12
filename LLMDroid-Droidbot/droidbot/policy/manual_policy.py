@@ -12,8 +12,8 @@ class ManualPolicy(UtgBasedInputPolicy):
     manually explore UFG
     """
 
-    def __init__(self, device, app, code_coverage):
-        super(ManualPolicy, self).__init__(device, app, False, code_coverage)
+    def __init__(self, device, app, code_coverage, external_driver=False):
+        super(ManualPolicy, self).__init__(device, app, False, code_coverage, external_driver=external_driver)
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.__first_event = True
