@@ -18,6 +18,9 @@ from ..global_log import get_logger
 from .state_cluster import StateCluster
 
 
+DEFAULT_INPUT_TEXT = "Hello World"
+
+
 class DeviceState(object):
     """
     the state of the current device
@@ -433,7 +436,7 @@ class DeviceState(object):
         children = set(children)
         for child in children:
             children_of_child = self.get_all_children(self.views[child])
-            children.union(children_of_child)
+            children.update(children_of_child)
         return children
 
     def get_app_activity_depth(self, app):
@@ -461,6 +464,13 @@ class DeviceState(object):
         possible_events = []
         enabled_view_ids = []
         touch_exclude_view_ids = set()
+        touch_event_view_ids = set()
+
+        def append_touch_event(view_id):
+            if view_id not in touch_event_view_ids:
+                possible_events.append(TouchEvent(view=self.views[view_id]))
+                touch_event_view_ids.add(view_id)
+
         for view_dict in self.views:
             # exclude navigation bar if exists
             # 过滤系统状态栏/导航栏，避免把系统 UI 当作被测 App 的功能入口。
@@ -475,9 +485,9 @@ class DeviceState(object):
         for view_id in enabled_view_ids:
             if self.__safe_dict_get(self.views[view_id], 'clickable'):
                 # clickable view 生成点击事件，是 DroidBot 最主要的原子动作来源。
-                possible_events.append(TouchEvent(view=self.views[view_id]))
+                append_touch_event(view_id)
                 touch_exclude_view_ids.add(view_id)
-                touch_exclude_view_ids.union(self.get_all_children(self.views[view_id]))
+                touch_exclude_view_ids.update(self.get_all_children(self.views[view_id]))
 
         for view_id in enabled_view_ids:
             if self.__safe_dict_get(self.views[view_id], 'scrollable'):
@@ -489,9 +499,9 @@ class DeviceState(object):
 
         for view_id in enabled_view_ids:
             if self.__safe_dict_get(self.views[view_id], 'checkable'):
-                possible_events.append(TouchEvent(view=self.views[view_id]))
+                append_touch_event(view_id)
                 touch_exclude_view_ids.add(view_id)
-                touch_exclude_view_ids.union(self.get_all_children(self.views[view_id]))
+                touch_exclude_view_ids.update(self.get_all_children(self.views[view_id]))
 
         for view_id in enabled_view_ids:
             if self.__safe_dict_get(self.views[view_id], 'long_clickable'):
@@ -500,10 +510,10 @@ class DeviceState(object):
         for view_id in enabled_view_ids:
             if self.__safe_dict_get(self.views[view_id], 'editable'):
                 # editable view 默认生成 SetTextEvent，LLM Guidance 阶段可覆盖其中的 text。
-                possible_events.append(SetTextEvent(view=self.views[view_id], text="Hello World"))
+                append_touch_event(view_id)
+                possible_events.append(SetTextEvent(view=self.views[view_id], text=DEFAULT_INPUT_TEXT))
                 touch_exclude_view_ids.add(view_id)
-                # TODO figure out what event can be sent to editable views
-                pass
+                touch_exclude_view_ids.update(self.get_all_children(self.views[view_id]))
 
         # Set click events for child components of clickable components
         # 对叶子节点补充点击事件，提升黑盒场景下可探索动作的召回率。
@@ -513,7 +523,7 @@ class DeviceState(object):
             children = self.__safe_dict_get(self.views[view_id], 'children')
             if children and len(children) > 0:
                 continue
-            possible_events.append(TouchEvent(view=self.views[view_id]))
+            append_touch_event(view_id)
 
         # For old Android navigation bars
         # possible_events.append(KeyEvent(name="MENU"))
