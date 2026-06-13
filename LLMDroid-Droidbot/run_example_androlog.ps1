@@ -1,10 +1,10 @@
 param(
     [string]$DeviceSerial = 'emulator-5554',
     [string]$Python = "D:\DesignSoftware\Python\python.exe",
-    [string]$ApkFileName = "fing.apk",
+    [string]$ApkFileName = "TimePlanner.apk",
     [string]$ApkPath = "",
-    [string]$OutputDir = "$PSScriptRoot\output\androlog\fing",
-    [int]$Timeout = 3600,
+    [string]$OutputDir = "$PSScriptRoot\output\androlog\TimePlanner\dfs_greedy",
+    [int]$Timeout = 900,
     [int]$Interval = 5,
     [int]$Count = 100
 )
@@ -46,4 +46,5 @@ Write-Host "[LLMDroid Time Mode] Output dir: $OutputDir"
     -count $Count `
     -policy dfs_greedy `
     -grant_perm `
+    -keep_app `
     -code_coverage androlog

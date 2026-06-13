@@ -1,10 +1,10 @@
 {
-    "AppName": "Fing",
-    "Description": "This app is a networking toolset app that can scan devices on the network, assess network status, and analyze network security. It also provides many useful utilities such as ping, port scanning, and speed test.",
+    "AppName": "Time Planner: Schedule & Tasks",
+    "Description": "This app is designed to help users manage their daily schedules and tasks efficiently. It offers a range of features such as the ability to plan and track tasks, set reminders, and create detailed schedules. The app also includes productivity-enhancing tools like time tracking and goal setting, enabling users to monitor their progress and stay on top of their commitments.",
     "ApiKey": "sk-a8fcc94497e94f999fadded6477fc9a4",
     "BaseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
     "Model": "glm-5.1",
-    "TotalMethod": 62491,
-    "Tag": "FING_SUPER_LOG",
+    "TotalMethod": 23280,
+    "Tag": "TIME_PLANNER_SCHEDULE_WCX_LOG",
     "Window": 100
 }

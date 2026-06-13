@@ -1,7 +1,9 @@
 {
     "AppName": "Wish: Shop and Save",
     "Description": "This app is a mobile shopping app that offers extremely low-priced products, ranging from home goods and fashion apparel to electronics. Features include daily discounts, a user rating system, and global shopping options.",
-    "ApiKey": "",
+    "ApiKey": "sk-a8fcc94497e94f999fadded6477fc9a4",
+    "BaseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "Model": "glm-5.1",
     "TotalMethod": 241862,
     "Tag": "WISH_SHOP_WCX_LOG",
     "Window": 100

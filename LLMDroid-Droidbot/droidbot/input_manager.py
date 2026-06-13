@@ -158,11 +158,15 @@ class InputManager(object):
                               self.event_count)
                 self.monkey = subprocess.Popen(monkey_cmd.split(),
                                                stdout=subprocess.PIPE,
-                                               stderr=subprocess.PIPE)
-                for monkey_out_line in iter(self.monkey.stdout.readline, ''):
-                    if not isinstance(monkey_out_line, str):
-                        monkey_out_line = monkey_out_line.decode()
-                    self.logger.info(monkey_out_line)
+                                               stderr=subprocess.PIPE,
+                                               text=True)
+                stdout, stderr = self.monkey.communicate()
+                for monkey_out_line in stdout.splitlines():
+                    if monkey_out_line.strip():
+                        self.logger.info(monkey_out_line)
+                for monkey_err_line in stderr.splitlines():
+                    if monkey_err_line.strip():
+                        self.logger.warning(monkey_err_line)
                 # may be disturbed from outside
                 if self.monkey is not None:
                     self.monkey.wait()
