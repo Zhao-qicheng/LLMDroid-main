@@ -1,9 +1,9 @@
 param(
     [string]$DeviceSerial = 'emulator-5554',
     [string]$Python = "D:\DesignSoftware\Python\python.exe",
-    [string]$ApkFileName = "Red_Bull_TV.apk",
+    [string]$ApkFileName = "CafeNovel.apk",
     [string]$ApkPath = "",
-    [string]$OutputDir = "$PSScriptRoot\output\androlog\Red_Bull_TV\dfs_greedy",
+    [string]$OutputDir = "$PSScriptRoot\output\androlog\CafeNovel\dfs_greedy",
     [int]$Timeout = 1800,
     [int]$Interval = 3,
     [int]$Count = 100

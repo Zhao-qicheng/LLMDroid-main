@@ -1,10 +1,10 @@
 {
-    "AppName": "Red Bull TV: Videos & Sports",
-    "Description": "This is a streaming app that provides access to a wide range of content, including live sports events, music festivals, documentaries, and original series. It focuses on extreme sports, adventure, and cultural experiences from around the world. Users can watch live events, catch up on past events, and explore curated playlists of content. The app also features exclusive behind-the-scenes footage and athlete profiles, making it a go-to platform for fans of action sports and adventure content.",
+    "AppName": "CafaNovel",
+    "Description": "Coffee Novel is a novel reader that covers the most popular types of novels on the internet. Users can browse and search for various types of novels, read novels online, or add them to their bookshelf.",
     "ApiKey": "sk-a8fcc94497e94f999fadded6477fc9a4",
     "BaseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
     "Model": "glm-5.1",
-    "TotalMethod": 244451,
-    "Tag": "RED_BULL_TV_WCX_LOG",
+    "TotalMethod": 127880,
+    "Tag": "CAFENOVEL_WCX_LOG",
     "Window": 100
 }

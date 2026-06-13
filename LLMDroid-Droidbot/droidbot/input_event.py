@@ -755,15 +755,20 @@ class ScrollEvent(UIEvent):
     """
 
     def __init__(self, x=None, y=None, view=None, direction="down", event_dict=None):
+        if event_dict is not None:
+            direction = event_dict.get('direction', direction)
+        direction = str(direction).lower()
+        direction_to_action = {
+            'up': ActionType.SCROLL_BOTTOM_UP,
+            'down': ActionType.SCROLL_TOP_DOWN,
+            'left': ActionType.SCROLL_RIGHT_LEFT,
+            'right': ActionType.SCROLL_LEFT_RIGHT,
+        }
+        if direction not in direction_to_action:
+            raise InvalidEventException("Invalid scroll direction: %s" % direction)
+
         super().__init__(widget=utils.safe_dict_get(view, 'widget', None))
-        if direction == 'up':
-            self.action_type = ActionType.SCROLL_BOTTOM_UP
-        elif direction == 'down':
-            self.action_type = ActionType.SCROLL_TOP_DOWN
-        elif direction == 'left':
-            self.action_type = ActionType.SCROLL_RIGHT_LEFT
-        elif direction == 'right':
-            self.action_type = ActionType.SCROLL_LEFT_RIGHT
+        self.action_type = direction_to_action[direction]
 
         self.event_type = KEY_ScrollEvent
         self.x = x
@@ -773,6 +778,8 @@ class ScrollEvent(UIEvent):
 
         if event_dict is not None:
             self.__dict__.update(event_dict)
+            self.direction = direction
+            self.action_type = direction_to_action[direction]
 
     def to_description(self, html: str = '') -> str:
         target = html
@@ -794,7 +801,7 @@ class ScrollEvent(UIEvent):
         x = random.uniform(0, device.get_width())
         y = random.uniform(0, device.get_height())
         direction = random.choice(["up", "down", "left", "right"])
-        return ScrollEvent(x, y, direction)
+        return ScrollEvent(x=x, y=y, direction=direction)
 
     def send(self, device):
         # 根据目标 view 的尺寸和方向计算拖拽起止点，再通过 device.view_drag 执行。
@@ -816,16 +823,16 @@ class ScrollEvent(UIEvent):
         end_x, end_y = x, y
         duration = 500
 
-        if self.direction == "UP":
+        if self.direction == "up":
             start_y -= height * 2 / 5
             end_y += height * 2 / 5
-        elif self.direction == "DOWN":
+        elif self.direction == "down":
             start_y += height * 2 / 5
             end_y -= height * 2 / 5
-        elif self.direction == "LEFT":
+        elif self.direction == "left":
             start_x -= width * 2 / 5
             end_x += width * 2 / 5
-        elif self.direction == "RIGHT":
+        elif self.direction == "right":
             start_x += width * 2 / 5
             end_x -= width * 2 / 5
 
