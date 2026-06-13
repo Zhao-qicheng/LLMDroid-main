@@ -5,6 +5,7 @@
 import copy
 import math
 import os
+import re
 import threading
 import time
 import datetime
@@ -19,6 +20,12 @@ from .state_cluster import StateCluster
 
 
 DEFAULT_INPUT_TEXT = "Hello World"
+DEFAULT_EMAIL_TEXT = "test@example.com"
+DEFAULT_PHONE_TEXT = "13800138000"
+DEFAULT_NUMBER_TEXT = "123"
+DEFAULT_DATE_TEXT = "2026-01-01"
+DEFAULT_PASSWORD_TEXT = "Password123"
+DEFAULT_SEARCH_TEXT = "test"
 
 
 class DeviceState(object):
@@ -382,6 +389,37 @@ class DeviceState(object):
         return value if value is not None else default
 
     @staticmethod
+    def __get_input_field_info(view_dict):
+        keys = ['resource_id', 'content_description', 'text', 'hint', 'input_type', 'inputType', 'class']
+        parts = []
+        for key in keys:
+            value = DeviceState.__safe_dict_get(view_dict, key, '')
+            if value:
+                parts.append(str(value))
+        if DeviceState.__safe_dict_get(view_dict, 'is_password', False):
+            parts.append('password')
+        return ' '.join(parts).lower()
+
+    @staticmethod
+    def __infer_default_input_text(view_dict):
+        field_info = DeviceState.__get_input_field_info(view_dict)
+        if not field_info:
+            return DEFAULT_INPUT_TEXT
+        if re.search(r'password|passwd|\bpwd\b', field_info):
+            return DEFAULT_PASSWORD_TEXT
+        if re.search(r'email|e-mail|mail', field_info):
+            return DEFAULT_EMAIL_TEXT
+        if re.search(r'phone|mobile|tel|contact', field_info):
+            return DEFAULT_PHONE_TEXT
+        if re.search(r'date|birthday|birth|calendar|time', field_info):
+            return DEFAULT_DATE_TEXT
+        if re.search(r'number|numeric|decimal|digit|amount|count|age|weight|height|bmi', field_info):
+            return DEFAULT_NUMBER_TEXT
+        if re.search(r'search|query|keyword', field_info):
+            return DEFAULT_SEARCH_TEXT
+        return DEFAULT_INPUT_TEXT
+
+    @staticmethod
     def get_view_center(view_dict):
         """
         return the center point in a view
@@ -518,7 +556,8 @@ class DeviceState(object):
             if self.__safe_dict_get(self.views[view_id], 'editable'):
                 # editable view 默认生成 SetTextEvent，LLM Guidance 阶段可覆盖其中的 text。
                 append_touch_event(view_id)
-                possible_events.append(SetTextEvent(view=self.views[view_id], text=DEFAULT_INPUT_TEXT))
+                input_text = self.__infer_default_input_text(self.views[view_id])
+                possible_events.append(SetTextEvent(view=self.views[view_id], text=input_text))
                 touch_exclude_view_ids.add(view_id)
                 touch_exclude_view_ids.update(self.get_all_children(self.views[view_id]))
 

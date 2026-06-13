@@ -18,7 +18,7 @@ I will provide an HTML description of an app's page, including the components an
 In the HTML description of this page,
 I use five types of HTML tags, namely <button>, <checkbox>, <scroller>, <input>, and <p>, which represent elements that can be clicked, checked, swiped, edited, and any other views respectively.
 Each HTML element has the following attributes: 
-id(the unique id of this component), class(the class name of this component), resource-id (the resource-id of this Android component), content-desc (the content description of this component), text (the text of this component), direction (if this component is scrollable, indicating its scroll direction), value (the text that has been input to the text box).
+id(the unique id of this component), class(the class name of this component), resource-id (the resource-id of this Android component), content-desc (the content description of this component), text (the text of this component), direction (if this component is scrollable, indicating its scroll direction), value (the text that has been input to the text box), hint (the input hint), input-type (the expected input type), checked/selected (the current state of selectable controls), and control-type (checkbox, radio, or switch).
 """
 
 # 完整页面概览任务要求：总结页面、提取并排序功能，并结合其他页面进行重要性排名。
@@ -154,7 +154,7 @@ input_explanation_test = """
 The app's current page is provided using HTML, including the components and their structural information.
 I use five types of HTML tags, namely <button>, <checkbox>, <scroller>, <input>, and <p>, which represent elements that can be clicked, checked, swiped, edited, and any other views respectively.
 Each HTML element has the following attributes: 
-id(the unique id of this component), class(the class name of this component), resource-id (the resource-id of this Android component), content-desc (the content description of this component), text (the text of this component), direction (if this component is scrollable, indicating its scroll direction), value (the text that has been input to the text box).
+id(the unique id of this component), class(the class name of this component), resource-id (the resource-id of this Android component), content-desc (the content description of this component), text (the text of this component), direction (if this component is scrollable, indicating its scroll direction), value (the text that has been input to the text box), hint (the input hint), input-type (the expected input type), checked/selected (the current state of selectable controls), and control-type (checkbox, radio, or switch).
 """
 
 # 目标功能执行任务要求：让模型判断下一步应选择哪个元素并执行什么动作。
@@ -208,8 +208,7 @@ input_explanation_reanalysis2 = """
 Now, you are provided with a set of similar pages containing controls not present in the previous page. Your task is to analyze the potential functions corresponding to these controls.
 
 The controls are provided in HTML format, consisting of five types of HTML tags: <button>, <checkbox>, <scroller>, <input>, and <p>, which represent elements that can be clicked, checked, swiped, edited, and other views, respectively.
-Each HTML element has the following attributes: id (the unique ID of this component), class (the class name of this component), resource-id (the resource ID of this Android component), content-desc (the content description of this component), text (the text of this component), direction (if this component is scrollable, indicating its scroll direction)
-value (the text that has been input to the text box)
+Each HTML element has the following attributes: id (the unique ID of this component), class (the class name of this component), resource-id (the resource ID of this Android component), content-desc (the content description of this component), text (the text of this component), direction (if this component is scrollable, indicating its scroll direction), value (the text that has been input to the text box), hint (the input hint), input-type (the expected input type), checked/selected (the current state of selectable controls), and control-type (checkbox, radio, or switch).
 """
 
 # 页面重分析任务要求：结合已有分析识别新增控件功能，并按重要性排序。

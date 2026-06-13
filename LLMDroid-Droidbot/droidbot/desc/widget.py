@@ -6,6 +6,14 @@ from ..utils import safe_dict_get
 from .action_type import *
 
 
+def _format_bool(value):
+    return str(bool(value)).lower()
+
+
+def _escape_attr(value):
+    return str(value).replace('&', '&amp;').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+
+
 class Widget:
     def __init__(self, view):
         # compatibility
@@ -47,6 +55,11 @@ class Widget:
         self.__resource_id: str = safe_dict_get(view, 'resource_id', '')
         self.__text: str = safe_dict_get(view, 'text', '')
         self.__content_desc: str = safe_dict_get(view, 'content_description', '')
+        self.__hint: str = safe_dict_get(view, 'hint', '')
+        self.__input_type = safe_dict_get(view, 'input_type', safe_dict_get(view, 'inputType', ''))
+        self.__checked = safe_dict_get(view, 'checked', False)
+        self.__selected = safe_dict_get(view, 'selected', False)
+        self.__is_password = safe_dict_get(view, 'is_password', False)
         # [[left, top], [right, bottom]]
         self.__bounds = view['bounds']
 
@@ -104,6 +117,18 @@ class Widget:
 
     def get_text(self) -> str:
         return self.__text
+
+    def get_hint(self) -> str:
+        return self.__hint
+
+    def get_input_type(self):
+        return self.__input_type
+
+    def get_checked(self) -> bool:
+        return self.__checked
+
+    def get_selected(self) -> bool:
+        return self.__selected
 
     def get_function(self) -> str:
         return self.__function
@@ -171,6 +196,14 @@ class Widget:
         else:
             return ScrollType.ALL  # ALL ?
 
+    def get_control_type(self) -> str:
+        class_name = self.get_class().lower()
+        if "radio" in class_name:
+            return "radio"
+        if "switch" in class_name:
+            return "switch"
+        return "checkbox"
+
     def to_html(self, widget_to_merge: 'list[Widget]' = None, has_child: bool = False, id: int = -1) -> str:
         if widget_to_merge is None:
             widget_to_merge = []
@@ -184,23 +217,27 @@ class Widget:
         # class
         class_name = self.get_class()
         if class_name:
-            result += f'class="{class_name}" '
+            result += f'class="{_escape_attr(class_name)}" '
 
         res_id = self.get_resource_id()
         if res_id:
-            result += f'resource-id="{res_id}" '
+            result += f'resource-id="{_escape_attr(res_id)}" '
         else:
             for widget in widget_to_merge:
                 res_id = widget.get_resource_id()
                 if res_id:
-                    result += f'resource-id="{res_id}" '
+                    result += f'resource-id="{_escape_attr(res_id)}" '
                     break
 
         content_desc = self.get_content_desc()
         if content_desc:
-            result += f'content-desc="{content_desc}" '
+            result += f'content-desc="{_escape_attr(content_desc)}" '
 
         # add special attribute
+        if html_class == HtmlClass.CHECKBOX:
+            result += f'control-type="{self.get_control_type()}" '
+            result += f'checked="{_format_bool(self.__checked)}" '
+            result += f'selected="{_format_bool(self.__selected)}" '
         if html_class == HtmlClass.SCROLLER:
             scroll_type = self.get_scroll_type()
             if scroll_type == ScrollType.ALL:
@@ -210,7 +247,14 @@ class Widget:
             elif scroll_type == ScrollType.Vertical:
                 result += 'direction="vertical" '
         if html_class == HtmlClass.INPUT:
-            result += 'input="?" '
+            result += f'value="{_escape_attr(self.__text)}" '
+            if self.__hint:
+                result += f'hint="{_escape_attr(self.__hint)}" '
+            input_type = self.__input_type
+            if self.__is_password and not input_type:
+                input_type = "password"
+            if input_type:
+                result += f'input-type="{_escape_attr(input_type)}" '
 
         result += '>'
 
