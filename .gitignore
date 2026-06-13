@@ -3,4 +3,6 @@ LLMDroid-Droidbot/output-tomato-glm/
 LLMDroid-Droidbot/output-mobsf-external/
 LLMDroid-Droidbot/runtime.log
 __pycache__/
+ExperimentalDataset
+output
 *.pyc

@@ -1,5 +1,5 @@
 param(
-    [string]$DeviceSerial = "10.30.58.20:6556",
+    [string]$DeviceSerial = "10.30.58.20:6555",
     [string]$ApkPath = "",
     [string]$OutputDir = "output-mobsf-external",
     [string]$Policy = "dfs_greedy",
