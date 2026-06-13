@@ -44,8 +44,6 @@ Write-Host "[LLMDroid Time Mode] Output dir: $OutputDir"
     -timeout $Timeout `
     -interval $Interval `
     -count $Count `
-    -keep_app `
-    -keep_env `
     -policy dfs_greedy `
     -grant_perm `
     -code_coverage androlog
