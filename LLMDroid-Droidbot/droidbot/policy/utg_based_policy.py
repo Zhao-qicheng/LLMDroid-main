@@ -364,11 +364,15 @@ class UtgBasedInputPolicy(InputPolicy):
         # get target state and function
         self.__navigate_target, self.__function_to_test = self.__future.result()
         # Calculate path to target state
-        paths = self.utg.get_paths(target_state_id=self.__navigate_target)
+        paths = self.utg.get_paths(target_state_id=self.__navigate_target, source_state=self.current_state)
         # Set path
         if paths:
             self.__current_path = paths[0]
             self.__paths = paths[1:]
+            if len(self.__current_path.steps) == 0:
+                self.logger.info("Already at navigation target")
+                self.__on_navigate_over(True)
+                self.__prepare_test_function()
         else:
             self.logger.warning(f"There is no path from State{self.current_state.get_id()} to Cluster{self.__navigate_target}")
             self.__on_navigate_failed()

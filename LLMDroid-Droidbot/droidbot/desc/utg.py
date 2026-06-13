@@ -455,7 +455,7 @@ class UTG(object):
                 return cluster
         return None
 
-    def get_paths(self, target_state_id: int) -> list[Path]:
+    def get_paths(self, target_state_id: int, source_state: DeviceState = None) -> list[Path]:
         # LLMDroid Guidance 阶段使用：从当前状态尝试生成到目标 State 的候选路径。
         # self.logger.info(f"Try to find path from Cluster{self.current_cluster.get_id()} to Cluster{target_cluster_id}")
         # # find cluster by id
@@ -463,10 +463,15 @@ class UTG(object):
         # if target_cluster is None:
         #     self.logger.warning(f"Can't find Cluster{target_cluster_id}")
         #     return []
-        self.logger.info(f"Try to find path from Current State{self.last_state.get_id()} to State{target_state_id}")
+        if source_state is None:
+            source_state = self.last_state
+        if source_state is None:
+            self.logger.warning(f"Cannot find a path to State{target_state_id}: source state is None")
+            return []
+        self.logger.info(f"Try to find path from Current State{source_state.get_id()} to State{target_state_id}")
         target_state = self.find_state_by_id(target_state_id)
         if target_state:
-            paths = self.generate_paths(self.last_state, target_state)
+            paths = self.generate_paths(source_state, target_state)
             self.logger.info(f"Found {len(paths)} paths!")
             return paths
         else:
@@ -501,24 +506,42 @@ class UTG(object):
         # 生成多条候选路径：最短路径必选，再补充若干较短且较新的路径作为失败备选。
         paths = []
 
-        raw_paths = nx.all_simple_paths(self.G, source=self.first_state.state_str,
-                                        target=dest_state.state_str, cutoff=10)
-        raw_shortest_path = nx.shortest_path(G=self.G, source=self.first_state.state_str, target=dest_state.state_str)
+        if source_state is None or dest_state is None:
+            return []
+        if source_state.state_str not in self.G.nodes() or dest_state.state_str not in self.G.nodes():
+            self.logger.warning("Cannot generate paths: source or destination state is not in UTG")
+            return []
 
-        shortest_path = self.convert_path(raw_shortest_path)
-        shortest_length = shortest_path.length
-        paths.append(shortest_path)
+        def append_paths_from(source, dest, prepend_stop=False):
+            try:
+                raw_shortest_path = nx.shortest_path(G=self.G, source=source.state_str, target=dest.state_str)
+            except (nx.NetworkXNoPath, nx.NodeNotFound) as e:
+                self.logger.warning(f"Cannot find a path from State{source.get_id()} to State{dest.get_id()}: {e}")
+                return
 
-        # 1. If there is no path, raw paths are empty
-        # 2. If source == dest, which means dest == first_state: Raw paths contain only one element, which is a list containing only the first state
-        for i, raw_path in enumerate(raw_paths):
-            path = self.convert_path(raw_path)
-            if path.length > shortest_length:
-                self.print_path(path=path, id_=i)
-                paths.append(path)
-            if i >= 100:
-                self.logger.warning("Too many possible paths, break")
-                break
+            shortest_path = self.convert_path(raw_shortest_path, prepend_stop=prepend_stop)
+            paths.append(shortest_path)
+            shortest_length = shortest_path.length
+
+            # 1. If there is no path, raw paths are empty
+            # 2. If source == dest, raw paths contain only one element.
+            try:
+                raw_paths = nx.all_simple_paths(self.G, source=source.state_str,
+                                                target=dest.state_str, cutoff=10)
+                for i, raw_path in enumerate(raw_paths):
+                    path = self.convert_path(raw_path, prepend_stop=prepend_stop)
+                    if path.length > shortest_length:
+                        self.print_path(path=path, id_=i)
+                        paths.append(path)
+                    if i >= 100:
+                        self.logger.warning("Too many possible paths, break")
+                        break
+            except (nx.NetworkXNoPath, nx.NodeNotFound) as e:
+                self.logger.warning(f"Cannot enumerate paths from State{source.get_id()} to State{dest.get_id()}: {e}")
+
+        append_paths_from(source_state, dest_state)
+        if not self.external_driver and self.first_state and self.first_state.state_str != source_state.state_str:
+            append_paths_from(self.first_state, dest_state, prepend_stop=True)
 
         # reset 'used' to False
         for u, v, data in self.G.edges(data=True):
@@ -539,7 +562,7 @@ class UTG(object):
             self.print_path(path, i)
         return paths[:3]
 
-    def convert_path(self, raw_path: list[str]) -> Path:
+    def convert_path(self, raw_path: list[str], prepend_stop: bool = False) -> Path:
         # 将 networkx 的节点列表转换为可执行 Step 列表，并选择每条边上的具体事件。
         steps: list[Step] = []
         latest_time = 0
@@ -573,7 +596,7 @@ class UTG(object):
                 latest_time = max(value['time'], latest_time)
                 steps.append(Step(node=next_node_state.get_id(), event=value['event'], created_time=value['time']))
 
-        if not self.external_driver:
+        if prepend_stop:
             # add STOP event
             # 路径开头插入 STOP/重启动作，尽量让导航从稳定初始状态开始。
             steps.insert(0, Step(node=self.G.nodes[raw_path[0]]['state'].get_id(),
