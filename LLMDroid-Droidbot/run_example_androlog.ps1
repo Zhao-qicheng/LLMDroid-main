@@ -1,11 +1,11 @@
 param(
     [string]$DeviceSerial = 'emulator-5554',
     [string]$Python = "D:\DesignSoftware\Python\python.exe",
-    [string]$ApkFileName = "TimePlanner.apk",
+    [string]$ApkFileName = "renpho_health.apk",
     [string]$ApkPath = "",
-    [string]$OutputDir = "$PSScriptRoot\output\androlog\TimePlanner\dfs_greedy",
-    [int]$Timeout = 900,
-    [int]$Interval = 5,
+    [string]$OutputDir = "$PSScriptRoot\output\androlog\renpho_health\dfs_greedy",
+    [int]$Timeout = 1800,
+    [int]$Interval = 3,
     [int]$Count = 100
 )
 

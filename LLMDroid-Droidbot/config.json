@@ -1,10 +1,10 @@
 {
-    "AppName": "Time Planner: Schedule & Tasks",
-    "Description": "This app is designed to help users manage their daily schedules and tasks efficiently. It offers a range of features such as the ability to plan and track tasks, set reminders, and create detailed schedules. The app also includes productivity-enhancing tools like time tracking and goal setting, enabling users to monitor their progress and stay on top of their commitments.",
+    "AppName": "Renpho Health",
+    "Description": "Renpho Health is an app designed to track various body composition metrics such as BMI, body fat percentage, body water, bone mass, basal metabolism, body age, and muscle mass. It syncs with devices like body fat scales, smart jump ropes, and treadmills. The app offers cloud-based data analysis, generating charts and reports that can be shared easily. Renpho Health supports multiple users, making it suitable for families, and can also sync with third-party apps like Google Fit to provide a comprehensive health tracking experience.",
     "ApiKey": "sk-a8fcc94497e94f999fadded6477fc9a4",
     "BaseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
     "Model": "glm-5.1",
-    "TotalMethod": 23280,
-    "Tag": "TIME_PLANNER_SCHEDULE_WCX_LOG",
+    "TotalMethod": 395367,
+    "Tag": "RENPHO_HEALTH_WCX_LOG",
     "Window": 100
 }

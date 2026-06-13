@@ -424,7 +424,7 @@ class DeviceState(object):
             result += self.get_all_ancestors(self.views[parent_id])
         return result
 
-    def get_all_children(self, view_dict):
+    def get_all_children(self, view_dict, visited=None):
         """
         Get temp view ids of the given view's children
         :param view_dict: dict, an element of DeviceState.views
@@ -433,11 +433,18 @@ class DeviceState(object):
         children = self.__safe_dict_get(view_dict, 'children')
         if not children:
             return set()
+        if visited is None:
+            visited = set()
         children = set(children)
-        for child in children:
-            children_of_child = self.get_all_children(self.views[child])
-            children.update(children_of_child)
-        return children
+        result = set()
+        for child in list(children):
+            if child in visited:
+                continue
+            visited.add(child)
+            result.add(child)
+            children_of_child = self.get_all_children(self.views[child], visited)
+            result.update(children_of_child)
+        return result
 
     def get_app_activity_depth(self, app):
         """
