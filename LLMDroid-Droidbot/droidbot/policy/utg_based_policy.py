@@ -75,7 +75,7 @@ class UtgBasedInputPolicy(InputPolicy):
                 if log_identifier == '' or total == -1:
                     self.logger.error("Must specify Tag and TotalMethod in config.json when using androlog!")
                     raise Exception("Must specify Tag and TotalMethod in config.json when using androlog!")
-            self.__cv_monitor = AndroLogCVMonitor(save_dir=app.output_dir, wsize=5, tag=log_identifier, total=total)
+            self.__cv_monitor = AndroLogCVMonitor(save_dir=app.output_dir, wsize=10, tag=log_identifier, total=total)
             self.__cv_monitor.start_logcat_listener()
 
         elif code_coverage == 'jacoco':
@@ -183,6 +183,11 @@ class UtgBasedInputPolicy(InputPolicy):
         # self.logger.debug(f'State{self.current_state.get_id()} HTML, Activity:{self.current_state.foreground_activity}\n{self.current_state.to_html()}')
 
         # 页面先按相似度归并为 StateCluster，LLM 后续处理的是 cluster/function 层面的语义。
+        # 只有“新 cluster”才会触发 OVERVIEW。
+        # 如果只是进入已有 cluster，不会重新调用 OVERVIEW。
+        # 如果当前页面不是被测 App 页面，比如系统权限页、桌面、设置页等，不会调用 OVERVIEW。
+        # OVERVIEW 是异步的：主探索不会立刻等它返回，而是继续探索。
+        # 但是后面进入 GUIDE 前，会等待队列清空，确保页面摘要和功能列表已经准备好。
         cluster = self.__find_most_similar()
         if cluster:
             cluster.add_state(self.current_state)
@@ -356,6 +361,12 @@ class UtgBasedInputPolicy(InputPolicy):
 
     def __prepare_for_navigate(self):
         # 询问 LLM 要优先测试哪个 cluster/function，然后在本地 UTG 上计算到目标页的路径。
+        # GUIDE 不会一启动就调用，必须先探索一段时间。
+        # time 模式默认大约每 240 秒触发一次 Guidance。
+        # 覆盖率模式下，只有覆盖率增长进入低增长窗口才触发。
+        # 进入 GUIDE 前会等待队列任务完成。代码上是等 __question_remained == 0，严格来说不只是高优先级任务，已计数的低优先级任务也可能被等待。
+        # 如果没有可用的 cluster/function，GUIDE 可能仍会请求模型，但 cluster_info 可能为空或退化为忽略已测试状态的列表。
+        # LLM 返回目标后，代码不让 LLM 逐步导航，而是用本地 UTG 算路径。
         self.__current_mode = Mode.NAVIGATE
         self.__total_guide_times += 1
         # ask gpt for guidance

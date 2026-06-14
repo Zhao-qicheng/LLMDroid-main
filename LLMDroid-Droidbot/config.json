@@ -1,10 +1,10 @@
 {
-    "AppName": "CafaNovel",
-    "Description": "Coffee Novel is a novel reader that covers the most popular types of novels on the internet. Users can browse and search for various types of novels, read novels online, or add them to their bookshelf.",
+    "AppName": "Wikipedia",
+    "Description": "The Wikipedia app is a mobile application that allows users to access the vast content of Wikipedia anytime, anywhere. Users can browse over 40 million articles in more than 40 languages, exploring a wealth of knowledge from around the world.",
     "ApiKey": "sk-a8fcc94497e94f999fadded6477fc9a4",
     "BaseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    "Model": "glm-5.1",
-    "TotalMethod": 127880,
-    "Tag": "CAFENOVEL_WCX_LOG",
+    "Model": "qwen3.5-plus-2026-04-20",
+    "TotalMethod": 79210,
+    "Tag": "WIKI_WCX_LOG",
     "Window": 100
 }

@@ -15,7 +15,7 @@ class CodeCoverageMonitor(metaclass=ABCMeta):
     具体覆盖率来源由 AndroLog/Jacoco 子类实现 _get_code_coverage()。
     """
 
-    def __init__(self, save_dir: str, wsize=10, min_growth_rate=0.05, factor=0.5):
+    def __init__(self, save_dir: str, wsize=10, min_growth_rate=0.01, factor=0.5):
         self.logger = get_logger()
         self.__file_path = os.path.join(save_dir, 'codecoverage.txt')
 
@@ -33,7 +33,7 @@ class CodeCoverageMonitor(metaclass=ABCMeta):
         self.__WINDOW_SIZE: int = wsize
         self.__MIN_GROWTH_RATE: float = min_growth_rate
         self.__FACTOR: float = factor
-        self.__MIN_THRESHOLD = 0.01
+        self.__MIN_THRESHOLD = 0.0001
         self.__window = (0, self.__WINDOW_SIZE)
         self.__current_coverage: float = 0.00001
         self.__cv_history: list[float] = []

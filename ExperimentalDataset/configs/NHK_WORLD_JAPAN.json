@@ -1,7 +1,10 @@
 {
     "AppName": "NHK WORLD-JAPAN",
     "Description": "The NHK WORLD-JAPAN app provides international audiences with the latest news and in-depth coverage of events in Japan and Asia. It offers live streaming of NHK's 24/7 English TV channel, along with multilingual video and audio programs on demand. The app supports 19 languages and includes features like push notifications for emergency information such as earthquakes and tsunamis. User can also learn Japanese through this app",
-    "ApiKey": "",
+    "ApiKey": "sk-a8fcc94497e94f999fadded6477fc9a4",
+    "BaseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "Model": "glm-5.1",
     "TotalMethod": 51729,
-    "Tag": "NHK_WORLD_JAPAN_WCX_LOG"
+    "Tag": "NHK_WORLD_JAPAN_WCX_LOG",
+    "Window": 100
 }
