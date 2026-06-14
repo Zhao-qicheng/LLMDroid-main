@@ -1,9 +1,9 @@
 param(
-    [string]$DeviceSerial = 'emulator-5554',
+    [string]$DeviceSerial = 'emulator-5556',
     [string]$Python = "D:\DesignSoftware\Python\python.exe",
-    [string]$ApkFileName = "Wikipedia.apk",
+    [string]$ApkFileName = "renpho_health.apk",
     [string]$ApkPath = "",
-    [string]$OutputDir = "$PSScriptRoot\output\androlog\Wikipedia\dfs_greedy",
+    [string]$OutputDir = "$PSScriptRoot\output\androlog\renpho_health\dfs_greedy",
     [int]$Timeout = 1800,
     [int]$Interval = 3,
     [int]$Count = 100

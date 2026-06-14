@@ -127,8 +127,9 @@ class LLMAgent:
         # 高优先级队列处理当前流程必须等待的任务；低优先级队列处理可延后的 reanalysis。
         self.__queue = Queue()
         self.__low_queue = Queue()
-        self.__question_remained: int = 0
-        self.__question_remained_lock = threading.Lock()
+        self.__high_question_remained: int = 0
+        self.__low_question_remained: int = 0
+        self.__question_count_lock = threading.Lock()
 
         self.__work_thread = threading.Thread(target=self.__work_loop)
         self.__work_thread.setDaemon(True)
@@ -145,17 +146,23 @@ class LLMAgent:
 
         if payload.mode != QuestionMode.REANALYSIS:
             # overview/guidance/test_function 都会影响当前阶段推进，进入高优先级队列。
-            with self.__question_remained_lock:
-                self.__question_remained += 1
+            with self.__question_count_lock:
+                self.__high_question_remained += 1
             self.__queue.put(payload)
-            self.logger.info(f"Push a question to high priority queue, remains: {self.__queue.qsize()}")
+            self.logger.info(
+                f"Push a question to high priority queue, remains: {self.__queue.qsize()}, "
+                f"high_pending: {self.__high_question_remained}"
+            )
         else:
             # reanalysis 只补充已有 cluster 的功能信息，且仅对高价值 cluster 做，降低 LLM 成本。
             if payload.cluster in self.__top_valued_cluster[:self.__p2]:
-                with self.__question_remained_lock:
-                    self.__question_remained += 1
+                with self.__question_count_lock:
+                    self.__low_question_remained += 1
                 self.__low_queue.put(payload)
-                self.logger.info(f"Push a question to low priority queue, remains: {self.__low_queue.qsize()}")
+                self.logger.info(
+                    f"Push a question to low priority queue, remains: {self.__low_queue.qsize()}, "
+                    f"low_pending: {self.__low_question_remained}"
+                )
 
     def __work_loop(self):
         # 子线程循环消费 LLM 任务。先看高优先级队列，再处理低优先级重分析任务。
@@ -173,33 +180,37 @@ class LLMAgent:
                         pass
 
                 if payload:
-                    # 不同 mode 对应不同 prompt 模板和响应处理逻辑。
-                    if payload.mode == QuestionMode.OVERVIEW:
-                        self.__ask_for_overview(payload)
-                    elif payload.mode == QuestionMode.GUIDE:
-                        self.__ask_for_guidance(payload)
-                    elif payload.mode == QuestionMode.TEST_FUNCTION:
-                        self.__ask_for_test_function(payload)
-                    elif payload.mode == QuestionMode.REANALYSIS:
-                        self.__ask_for_reanalysis(payload)
-
-                    with self.__question_remained_lock:
-                        self.__question_remained -= 1
+                    try:
+                        # 不同 mode 对应不同 prompt 模板和响应处理逻辑。
+                        if payload.mode == QuestionMode.OVERVIEW:
+                            self.__ask_for_overview(payload)
+                        elif payload.mode == QuestionMode.GUIDE:
+                            self.__ask_for_guidance(payload)
+                        elif payload.mode == QuestionMode.TEST_FUNCTION:
+                            self.__ask_for_test_function(payload)
+                        elif payload.mode == QuestionMode.REANALYSIS:
+                            self.__ask_for_reanalysis(payload)
+                    finally:
+                        with self.__question_count_lock:
+                            if payload.mode == QuestionMode.REANALYSIS:
+                                self.__low_question_remained -= 1
+                            else:
+                                self.__high_question_remained -= 1
             except Exception as e:
                 self.logger.error(f"Child thread error: {e}")
                 import traceback
                 traceback.print_exc()
 
     def wait_until_queue_empty(self):
-        # 进入 Guidance 前必须等页面摘要完成，否则 LLM 没有足够的 cluster/function 候选。
-        self.logger.info(f"Wait until queue is empty...")
+        # 进入 Guidance 前只等待会影响当前阶段推进的高优先级任务。
+        self.logger.info(f"Wait until high priority queue is empty...")
         while True:
-            with self.__question_remained_lock:
-                if self.__question_remained == 0:
-                    self.logger.info(f"question all done")
+            with self.__question_count_lock:
+                if self.__high_question_remained == 0:
+                    self.logger.info(f"high priority questions all done")
                     break
                 else:
-                    self.logger.info(f"Question remains: {self.__question_remained}")
+                    self.logger.info(f"High priority questions remain: {self.__high_question_remained}")
             time.sleep(3)
 
     def __ask_for_overview(self, payload: QuestionPayload):

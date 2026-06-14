@@ -187,7 +187,7 @@ class UtgBasedInputPolicy(InputPolicy):
         # 如果只是进入已有 cluster，不会重新调用 OVERVIEW。
         # 如果当前页面不是被测 App 页面，比如系统权限页、桌面、设置页等，不会调用 OVERVIEW。
         # OVERVIEW 是异步的：主探索不会立刻等它返回，而是继续探索。
-        # 但是后面进入 GUIDE 前，会等待队列清空，确保页面摘要和功能列表已经准备好。
+        # 但是后面进入 GUIDE 前，会等待高优先级队列清空，确保页面摘要和功能列表已经准备好。
         cluster = self.__find_most_similar()
         if cluster:
             cluster.add_state(self.current_state)
@@ -364,7 +364,7 @@ class UtgBasedInputPolicy(InputPolicy):
         # GUIDE 不会一启动就调用，必须先探索一段时间。
         # time 模式默认大约每 240 秒触发一次 Guidance。
         # 覆盖率模式下，只有覆盖率增长进入低增长窗口才触发。
-        # 进入 GUIDE 前会等待队列任务完成。代码上是等 __question_remained == 0，严格来说不只是高优先级任务，已计数的低优先级任务也可能被等待。
+        # 进入 GUIDE 前只等待高优先级任务完成，低优先级 reanalysis 不阻塞 Guidance。
         # 如果没有可用的 cluster/function，GUIDE 可能仍会请求模型，但 cluster_info 可能为空或退化为忽略已测试状态的列表。
         # LLM 返回目标后，代码不让 LLM 逐步导航，而是用本地 UTG 算路径。
         self.__current_mode = Mode.NAVIGATE
