@@ -322,7 +322,17 @@ class UtgBasedInputPolicy(InputPolicy):
             # EXPLORE 阶段保留原 DroidBot 策略；只有覆盖率/时间触发后才切换到 LLM Guidance。
             should_wait = self.__check_should_wait()
             if should_wait:
-                self.__llm_agent.wait_until_queue_empty()
+                overview_done = self.__llm_agent.wait_until_queue_empty()
+                if not self.__llm_agent.has_ready_overview():
+                    self.logger.warning(
+                        "No completed overview is available for Guidance yet; continue exploring and retry later"
+                    )
+                    if self.__cv_monitor:
+                        self.__cv_monitor.clear()
+                    self.__next_stage_time = time.time() + min(30, self.__GUIDANCE_INTERVAL)
+                    return
+                if not overview_done:
+                    self.logger.warning("Overview wait timed out; enter Guidance with currently completed clusters")
                 self.__current_mode = Mode.ASK_GUIDANCE
                 self.logger.info("Switch to ASK_GUIDANCE mode")
             else:

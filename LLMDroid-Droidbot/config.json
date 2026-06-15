@@ -6,5 +6,10 @@
     "Model": "qwen3.5-plus-2026-04-20",
     "TotalMethod": 395367,
     "Tag": "RENPHO_HEALTH_WCX_LOG",
-    "Window": 100
+    "Window": 100,
+    "LLMAgent": {
+        "OverviewWorkers": 2,
+        "ReanalysisWorkers": 1,
+        "GuidanceWaitTimeout": 45
+    }
 }
