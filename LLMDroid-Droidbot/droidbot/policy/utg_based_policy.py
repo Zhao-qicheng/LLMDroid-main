@@ -212,7 +212,7 @@ class UtgBasedInputPolicy(InputPolicy):
         if self.utg.current_cluster is None:
             return None
         similarity = self.current_state.compute_similarity(self.utg.current_cluster.get_root_state())
-        self.logger.debug(f"Similarity between State{self.current_state.get_id()} and CurrentCluster{self.utg.current_cluster.get_id()}'s root state is {similarity}")
+        # self.logger.debug(f"Similarity between State{self.current_state.get_id()} and CurrentCluster{self.utg.current_cluster.get_id()}'s root state is {similarity}")
         if similarity > threshold:
             return self.utg.current_cluster
 

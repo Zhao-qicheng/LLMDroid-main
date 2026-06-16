@@ -18,6 +18,10 @@ from ..global_log import get_logger
 from ..desc.action_type import ActionType
 
 
+PATH_CANDIDATE_LIMIT = 8
+PATH_RETURN_LIMIT = 3
+
+
 class UTGEdge(TypedDict):
     # UTG 边上的一次具体事件记录：事件对象、编号、创建时间和路径生成时的使用标记。
     event: InputEvent
@@ -503,66 +507,77 @@ class UTG(object):
         # return []
 
     def generate_paths(self, source_state, dest_state: DeviceState) -> list[Path]:
-        # 生成多条候选路径：最短路径必选，再补充若干较短且较新的路径作为失败备选。
-        paths = []
-
+        # Generate a small candidate pool for LLMDroid navigation. This avoids
+        # enumerating many simple paths when the UTG has high branching.
         if source_state is None or dest_state is None:
             return []
         if source_state.state_str not in self.G.nodes() or dest_state.state_str not in self.G.nodes():
             self.logger.warning("Cannot generate paths: source or destination state is not in UTG")
             return []
 
+        candidates: list[tuple[Path, bool, int]] = []
+        seen_raw_paths: set[tuple[bool, tuple[str, ...]]] = set()
+        used_event_keys: set[tuple[str, str, str]] = set()
+
         def append_paths_from(source, dest, prepend_stop=False):
-            try:
-                raw_shortest_path = nx.shortest_path(G=self.G, source=source.state_str, target=dest.state_str)
-            except (nx.NetworkXNoPath, nx.NodeNotFound) as e:
-                self.logger.warning(f"Cannot find a path from State{source.get_id()} to State{dest.get_id()}: {e}")
-                return
+            for raw_path in self._iter_candidate_raw_paths(source.state_str, dest.state_str):
+                raw_path_key = (prepend_stop, tuple(raw_path))
+                if raw_path_key in seen_raw_paths:
+                    continue
+                seen_raw_paths.add(raw_path_key)
 
-            shortest_path = self.convert_path(raw_shortest_path, prepend_stop=prepend_stop)
-            paths.append(shortest_path)
-            shortest_length = shortest_path.length
-
-            # 1. If there is no path, raw paths are empty
-            # 2. If source == dest, raw paths contain only one element.
-            try:
-                raw_paths = nx.all_simple_paths(self.G, source=source.state_str,
-                                                target=dest.state_str, cutoff=10)
-                for i, raw_path in enumerate(raw_paths):
-                    path = self.convert_path(raw_path, prepend_stop=prepend_stop)
-                    if path.length > shortest_length:
-                        self.print_path(path=path, id_=i)
-                        paths.append(path)
-                    if i >= 100:
-                        self.logger.warning("Too many possible paths, break")
-                        break
-            except (nx.NetworkXNoPath, nx.NodeNotFound) as e:
-                self.logger.warning(f"Cannot enumerate paths from State{source.get_id()} to State{dest.get_id()}: {e}")
+                path = self._convert_path(
+                    raw_path=raw_path,
+                    prepend_stop=prepend_stop,
+                    used_event_keys=used_event_keys
+                )
+                candidates.append((path, prepend_stop, len(candidates)))
 
         append_paths_from(source_state, dest_state)
         if not self.external_driver and self.first_state and self.first_state.state_str != source_state.state_str:
             append_paths_from(self.first_state, dest_state, prepend_stop=True)
 
-        # reset 'used' to False
-        for u, v, data in self.G.edges(data=True):
-            for edge in data['events'].values():
-                edge['used'] = False
+        if not candidates:
+            self.logger.warning(f"Cannot find a path from State{source_state.get_id()} to State{dest_state.get_id()}")
+            return []
 
-        # Select the three paths of the shortest and latest created edge
-        # 最多返回 3 条路径，避免导航失败时在过多历史路径上消耗时间。
-        if len(paths) <= 1:
-            return paths
-        # First sort: sort by length in ascending order
-        paths.sort(key=lambda path: path.length)
-        # Second sorting: Arrange elements other than the first element in descending order by latest time
-        # Note: Here we use slicing to exclude the first element and then sort the remaining ones
-        paths[1:] = sorted(paths[1:], key=lambda path: path.latest_time, reverse=True)
+        candidates.sort(key=lambda item: self._path_sort_key(item[0], item[1], item[2]))
+        selected_paths = [path for path, _, _ in candidates[:PATH_RETURN_LIMIT]]
+
         self.logger.info("***Sorted paths:***")
-        for i, path in enumerate(paths[:3]):
+        for i, path in enumerate(selected_paths):
             self.print_path(path, i)
-        return paths[:3]
+        return selected_paths
+
+    def _iter_candidate_raw_paths(self, source_str: str, dest_str: str):
+        if source_str == dest_str:
+            yield [source_str]
+            return
+
+        try:
+            raw_paths = nx.shortest_simple_paths(self.G, source=source_str, target=dest_str)
+            for i, raw_path in enumerate(raw_paths):
+                if i >= PATH_CANDIDATE_LIMIT:
+                    break
+                yield raw_path
+        except (nx.NetworkXNoPath, nx.NodeNotFound) as e:
+            self.logger.warning(f"Cannot find a path from {source_str} to {dest_str}: {e}")
+        except Exception as e:
+            self.logger.warning(f"Cannot enumerate shortest simple paths from {source_str} to {dest_str}: {e}")
+            try:
+                yield nx.shortest_path(G=self.G, source=source_str, target=dest_str)
+            except (nx.NetworkXNoPath, nx.NodeNotFound) as fallback_error:
+                self.logger.warning(f"Cannot find fallback path from {source_str} to {dest_str}: {fallback_error}")
+
+    @staticmethod
+    def _path_sort_key(path: Path, prepend_stop: bool, order: int):
+        return path.length, -path.latest_time, prepend_stop, order
 
     def convert_path(self, raw_path: list[str], prepend_stop: bool = False) -> Path:
+        return self._convert_path(raw_path=raw_path, prepend_stop=prepend_stop, used_event_keys=set())
+
+    def _convert_path(self, raw_path: list[str], prepend_stop: bool,
+                      used_event_keys: set[tuple[str, str, str]]) -> Path:
         # 将 networkx 的节点列表转换为可执行 Step 列表，并选择每条边上的具体事件。
         steps: list[Step] = []
         latest_time = 0
@@ -575,26 +590,19 @@ class UTG(object):
             # Get the state of the next node
             next_node_state: 'DeviceState' = self.G.nodes[next_node_str]['state']
 
-            # Get edge information
             edge_info: dict[str, UTGEdge] = self.G[current_node_str][next_node_str]['events']
-            get_edge = False
+            selected_event_str = next(iter(edge_info))
             for event_str in edge_info.keys():
-                value = edge_info[event_str]
-                # Prioritize unused edges
-                if not value['used']:
-                    steps.append(Step(node=next_node_state.get_id(), event=value['event'], created_time=value['time']))
-                    # Count the latest created step time of the path
-                    latest_time = max(value['time'], latest_time)
-                    value['used'] = True
-                    get_edge = True
+                event_key = (current_node_str, next_node_str, event_str)
+                if event_key not in used_event_keys:
+                    selected_event_str = event_str
                     break
-            # If all edges have been used, the first edge is used
-            if not get_edge:
-                first_key = next(iter(edge_info))
-                value = edge_info[first_key]
-                # Count the latest created step time of the path
-                latest_time = max(value['time'], latest_time)
-                steps.append(Step(node=next_node_state.get_id(), event=value['event'], created_time=value['time']))
+
+            event_key = (current_node_str, next_node_str, selected_event_str)
+            used_event_keys.add(event_key)
+            value = edge_info[selected_event_str]
+            latest_time = max(value['time'], latest_time)
+            steps.append(Step(node=next_node_state.get_id(), event=value['event'], created_time=value['time']))
 
         if prepend_stop:
             # add STOP event
