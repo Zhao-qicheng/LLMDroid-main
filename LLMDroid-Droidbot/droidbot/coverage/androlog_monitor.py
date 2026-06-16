@@ -25,7 +25,7 @@ def extract_content(line, prefix):
 class AndroLogCVMonitor(CodeCoverageMonitor):
     # TODO 支持指定udid
     def __init__(self, save_dir: str = '', total=62491, tag: str = "FING_SUPER_LOG",
-                 wsize=10, min_growth_rate=0.05, factor=0.5):
+                 wsize=20, min_growth_rate=0.05, factor=0.5):
 
         super().__init__(save_dir=save_dir, wsize=wsize, min_growth_rate=min_growth_rate, factor=factor)
 

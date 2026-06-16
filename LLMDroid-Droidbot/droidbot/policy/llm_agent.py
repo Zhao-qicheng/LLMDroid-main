@@ -7,6 +7,7 @@ import sys
 from enum import Enum
 import threading
 import json
+import re
 from concurrent.futures import Future
 import time
 from queue import Queue, Empty
@@ -427,8 +428,18 @@ class LLMAgent:
 
         json_resp = self.__get_response(prompt)
 
-        widget_id = int(json_resp['Element Id'])
-        act_type = ActionType.get_type_by_value(int(json_resp['Action Type']) + ActionType.CLICK.value)
+        widget_id = self.__parse_int_field(json_resp, 'Element Id')
+        action_offset = self.__parse_int_field(json_resp, 'Action Type')
+        if widget_id is None or action_offset is None:
+            self.__set_future_result(None)
+            return
+
+        try:
+            act_type = ActionType.get_type_by_value(action_offset + ActionType.CLICK.value)
+        except ValueError:
+            self.logger.warning(f"Invalid LLM Action Type: {action_offset!r}. Full response: {json_resp}")
+            self.__set_future_result(None)
+            return
 
         if widget_id == -1:
             self.__set_future_result(None)
@@ -583,6 +594,17 @@ class LLMAgent:
             future.set_result(result)
         else:
             self.logger.warning("Future is missing or already done, skip setting LLM result")
+
+    def __parse_int_field(self, json_resp: dict, key: str) -> Optional[int]:
+        value = json_resp.get(key)
+        if isinstance(value, int):
+            return value
+        if isinstance(value, str):
+            value = value.strip()
+            if re.fullmatch(r'-?\d+', value):
+                return int(value)
+        self.logger.warning(f"Invalid LLM response field {key}: {value!r}. Full response: {json_resp}")
+        return None
 
     def add_tested_function(self):
         """
