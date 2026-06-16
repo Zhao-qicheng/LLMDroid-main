@@ -45,6 +45,12 @@ HTML_SYSTEM_BAR_RESOURCE_IDS = {
     'android:id/statusBarBackground'
 }
 
+SIMILARITY_STRUCTURE_WEIGHT = 0.40
+SIMILARITY_ACTIONABLE_WEIGHT = 0.30
+SIMILARITY_SEMANTIC_WEIGHT = 0.20
+SIMILARITY_ACTIVITY_WEIGHT = 0.05
+SIMILARITY_STATE_FLAG_WEIGHT = 0.05
+
 
 class DeviceState(object):
     """
@@ -78,7 +84,8 @@ class DeviceState(object):
         self.__widgets: list[Widget] = []
         self.__merged_widgets = {}
         root = self.__init_widgets()
-        self.__root_widget = views[root]['widget']
+        self.__root_widget = views[root]['widget'] if root != -1 and 0 <= root < len(views) else None
+        self.__similarity_features = self.__build_similarity_features()
 
         self.state_str = self.__get_state_str()
         self.structure_str = self.__get_content_free_state_str()
@@ -1049,6 +1056,8 @@ class DeviceState(object):
             self.__html_desc = ''
             self.__html_tag_count = 0
             self.__tab_count = -1
+            if not self.__root_widget:
+                return self.__html_desc
             self.__generate_html_recursive(self.__root_widget)
             clipped_count = max(0, visible_count - self.__html_tag_count)
             hit_budget = self.__html_tag_count >= HTML_MAX_TAGS
@@ -1070,18 +1079,190 @@ class DeviceState(object):
     def get_id(self) -> int:
         return self.__id
 
+    def __build_similarity_features(self) -> dict[str, set]:
+        structure_hashes = set()
+        actionable_hashes = set()
+        semantic_tokens = set()
+        state_flags = set()
+
+        for widget in self.__widgets:
+            widget_hash = widget.get_hash()
+            structure_hashes.add(widget_hash)
+
+            if self.__is_actionable_widget(widget):
+                actionable_hashes.add(widget_hash)
+
+            semantic_tokens.update(self.__widget_semantic_tokens(widget))
+            state_flags.update(self.__widget_state_flags(widget))
+
+        return {
+            'structure_hashes': structure_hashes,
+            'actionable_hashes': actionable_hashes,
+            'semantic_tokens': semantic_tokens,
+            'state_flags': state_flags,
+        }
+
+    @staticmethod
+    def __dice_similarity(left: set, right: set) -> float:
+        total = len(left) + len(right)
+        if total == 0:
+            return 0.0
+        return (2 * len(left & right)) / total
+
+    @staticmethod
+    def __jaccard_similarity(left: set, right: set) -> float:
+        union = left | right
+        if len(union) == 0:
+            return 0.0
+        return len(left & right) / len(union)
+
+    @staticmethod
+    def __is_actionable_widget(widget: Widget) -> bool:
+        return (
+            widget.get_clickable()
+            or widget.get_editable()
+            or widget.get_checkable()
+            or widget.get_scrollable()
+        )
+
+    @staticmethod
+    def __is_layout_widget(widget: Widget) -> bool:
+        class_name = widget.get_class().lower()
+        return 'layout' in class_name or class_name in {
+            'viewgroup',
+            'view',
+            'framelayout',
+            'linearlayout',
+            'relativelayout',
+            'constraintlayout',
+        }
+
+    def __widget_semantic_tokens(self, widget: Widget) -> set[str]:
+        if self.__is_layout_widget(widget) and not self.__is_actionable_widget(widget):
+            return set()
+
+        tokens = set()
+        for value in (
+            widget.get_resource_id(),
+            widget.get_text(),
+            widget.get_content_desc(),
+            widget.get_hint(),
+            widget.get_class(),
+        ):
+            tokens.update(self.__normalize_tokens(value))
+        return tokens
+
+    @staticmethod
+    def __normalize_tokens(value: str) -> set[str]:
+        if not value:
+            return set()
+        value = str(value).strip().lower()
+        if len(value) > 50:
+            return set()
+        if DeviceState.__is_dynamic_token(value):
+            return set()
+
+        tokens = set()
+        for token in re.split(r'[^0-9a-zA-Z_]+', value):
+            token = token.strip('_')
+            if len(token) < 2:
+                continue
+            if DeviceState.__is_dynamic_token(token):
+                continue
+            tokens.add(token)
+        return tokens
+
+    @staticmethod
+    def __is_dynamic_token(token: str) -> bool:
+        if token.isdigit():
+            return True
+        if len(token) > 50:
+            return True
+        if re.fullmatch(r'\d{4}[-_/]?\d{1,2}[-_/]?\d{1,2}', token):
+            return True
+        if re.fullmatch(r'\d{1,2}:\d{2}(:\d{2})?', token):
+            return True
+        if re.fullmatch(r'[\w.+-]+@[\w-]+(\.[\w-]+)+', token):
+            return True
+        if re.fullmatch(r'1\d{10}', token):
+            return True
+        if re.fullmatch(r'[0-9a-f]{8}([0-9a-f]{4}){3}[0-9a-f]{12}', token):
+            return True
+        if re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', token):
+            return True
+        return False
+
+    def __widget_state_flags(self, widget: Widget) -> set[str]:
+        flags = set()
+        class_name = widget.get_class()
+        if widget.get_checked():
+            flags.add(f'{class_name}:checked')
+        if widget.get_selected():
+            flags.add(f'{class_name}:selected')
+        if widget.get_editable():
+            flags.add(f'{class_name}:editable')
+        if widget.get_scrollable():
+            flags.add(f'{class_name}:scrollable:{widget.get_scroll_type().name.lower()}')
+        return flags
+
+    def __activity_similarity(self, other: 'DeviceState') -> float:
+        if self.foreground_activity == other.foreground_activity:
+            return 1.0
+
+        def package_name(activity: str) -> str:
+            return activity.split('/')[0] if activity else ''
+
+        if package_name(self.foreground_activity) and package_name(self.foreground_activity) == package_name(other.foreground_activity):
+            return 0.3
+        return 0.0
+
     def compute_similarity(self, other: 'DeviceState') -> float:
-        # 页面相似度基于 Widget hash 的重合度，用于把相似页面合并为同一个 StateCluster。
-        matched_count = 0
-        to_compare = self.__widgets if len(self.__widgets) > len(other.__widgets) else other.__widgets
-        candidates = other.__widgets if len(self.__widgets) > len(other.__widgets) else self.__widgets
-        for candidate in candidates:
-            # Is there a widget with the same hash as candidate in find_if to_compare?
-            for other_widget in to_compare:
-                if candidate.get_hash() == other_widget.get_hash():
-                    matched_count += 1
-                    break
-        return (2 * matched_count) / (len(self.__widgets) + len(other.__widgets))
+        # 页面相似度用于 StateCluster 聚类：结构为主，关键控件和语义 token 辅助区分同结构页面。
+        self_features = self.__similarity_features
+        other_features = other.__similarity_features
+        if not self_features['structure_hashes'] and not other_features['structure_hashes']:
+            return 0.0
+
+        structure_similarity = self.__dice_similarity(
+            self_features['structure_hashes'],
+            other_features['structure_hashes'],
+        )
+        actionable_similarity = self.__dice_similarity(
+            self_features['actionable_hashes'],
+            other_features['actionable_hashes'],
+        )
+        if not self_features['actionable_hashes'] and not other_features['actionable_hashes']:
+            actionable_similarity = structure_similarity
+
+        semantic_similarity = self.__jaccard_similarity(
+            self_features['semantic_tokens'],
+            other_features['semantic_tokens'],
+        )
+        activity_similarity = self.__activity_similarity(other)
+        state_flag_similarity = self.__dice_similarity(
+            self_features['state_flags'],
+            other_features['state_flags'],
+        )
+
+        similarity = (
+            SIMILARITY_STRUCTURE_WEIGHT * structure_similarity
+            + SIMILARITY_ACTIONABLE_WEIGHT * actionable_similarity
+            + SIMILARITY_SEMANTIC_WEIGHT * semantic_similarity
+            + SIMILARITY_ACTIVITY_WEIGHT * activity_similarity
+            + SIMILARITY_STATE_FLAG_WEIGHT * state_flag_similarity
+        )
+        similarity = max(0.0, min(1.0, similarity))
+
+        self.logger.debug(
+            f"Similarity State{self.__id}-State{other.__id}: "
+            f"total={similarity:.3f} "
+            f"structure={structure_similarity:.3f} "
+            f"actionable={actionable_similarity:.3f} "
+            f"semantic={semantic_similarity:.3f} "
+            f"activity={activity_similarity:.3f} "
+            f"flags={state_flag_similarity:.3f}"
+        )
+        return similarity
 
     def get_cluster(self) -> 'StateCluster':
         return self.__cluster
@@ -1198,10 +1379,8 @@ class DeviceState(object):
         if target == self:
             return []
         res: list['Widget'] = []
+        target_hashes = target.__similarity_features['structure_hashes']
         for widget in self.__widgets:
-            # find_if
-            condition = lambda x, y: x.get_hash() == y.get_hash()
-            found: Optional[Widget] = next((item for item in target.__widgets if condition(x=widget, y=item)), None)
-            if not found and widget.get_class().lower().find("layout") == -1:
+            if widget.get_hash() not in target_hashes and widget.get_class().lower().find("layout") == -1:
                 res.append(widget)
         return res

@@ -1,9 +1,9 @@
 param(
     [string]$DeviceSerial = 'emulator-5554',
     [string]$Python = "D:\DesignSoftware\Python\python.exe",
-    [string]$ApkFileName = "fing.apk",
+    [string]$ApkFileName = "TimePlanner.apk",
     [string]$ApkPath = "",
-    [string]$OutputDir = "$PSScriptRoot\output\androlog\fing\dfs_greedy",
+    [string]$OutputDir = "$PSScriptRoot\output\androlog\TimePlanner\dfs_greedy",
     [int]$Timeout = 1800,
     [int]$Interval = 1,
     [int]$Count = 1000
