@@ -191,12 +191,19 @@ class UTG(object):
         if not state:
             return None
         existed_state: DeviceState = None
+        structure_state_count = 0
+        if state.structure_str in self.G2.nodes():
+            structure_state_count = len(self.G2.nodes[state.structure_str]['states'])
         if state.state_str not in self.G.nodes():
             # 新状态第一次出现时分配全局 State id，并保存截图/JSON 到输出目录。
             existed_state = state
             # set state's id
             state_id = len(self.G.nodes)
             self.logger.info(f"New State{state_id} added to graph")
+            self.logger.info(
+                f"State{state_id} structure_str={state.structure_str}, "
+                f"existing structure states={structure_state_count}"
+            )
             state.set_id(state_id)
             state.save2dir()
             self.G.add_node(state.state_str, state=state)
@@ -209,7 +216,9 @@ class UTG(object):
 
         if state.structure_str not in self.G2.nodes():
             self.G2.add_node(state.structure_str, states=[])
-        self.G2.nodes[state.structure_str]['states'].append(state)
+        structure_states = self.G2.nodes[state.structure_str]['states']
+        if all(item.state_str != existed_state.state_str for item in structure_states):
+            structure_states.append(existed_state)
 
         if state.foreground_activity.startswith(self.app.package_name):
             self.reached_activities.add(state.foreground_activity)

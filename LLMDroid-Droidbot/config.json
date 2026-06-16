@@ -1,10 +1,11 @@
-{"AppName": "Fing",
-    "Description": "This app is a networking toolset app that can scan devices on the network, assess network status, and analyze network security. It also provides many useful utilities such as ping, port scanning, and speed test.",
+{
+    "AppName": "Wikipedia",
+    "Description": "The Wikipedia app is a mobile application that allows users to access the vast content of Wikipedia anytime, anywhere. Users can browse over 40 million articles in more than 40 languages, exploring a wealth of knowledge from around the world.",
     "ApiKey": "sk-a8fcc94497e94f999fadded6477fc9a4",
     "BaseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    "Model": "qwen3.6-plus",
-    "TotalMethod": 62491,
-    "Tag": "FING_SUPER_LOG",
+    "Model": "qwen3.6-plus-2026-04-02",
+    "TotalMethod": 79210,
+    "Tag": "WIKI_WCX_LOG",
     "Window": 100,
     "LLMAgent": {
         "OverviewWorkers": 5,

@@ -75,7 +75,7 @@ class UtgBasedInputPolicy(InputPolicy):
                 if log_identifier == '' or total == -1:
                     self.logger.error("Must specify Tag and TotalMethod in config.json when using androlog!")
                     raise Exception("Must specify Tag and TotalMethod in config.json when using androlog!")
-            self.__cv_monitor = AndroLogCVMonitor(save_dir=app.output_dir, wsize=10, tag=log_identifier, total=total)
+            self.__cv_monitor = AndroLogCVMonitor(save_dir=app.output_dir, wsize=15, tag=log_identifier, total=total)
             self.__cv_monitor.start_logcat_listener()
 
         elif code_coverage == 'jacoco':
@@ -207,11 +207,11 @@ class UtgBasedInputPolicy(InputPolicy):
 
     def __find_most_similar(self) -> Optional[StateCluster]:
         # 相似度阈值决定页面聚类粒度：越高越容易产生新 cluster，越低越容易合并相近页面。
-        threshold = 0.6
+        threshold = 0.4
         # First compare with the current merged state
         if self.utg.current_cluster is None:
             return None
-        similarity = self.current_state.compute_similarity(self.utg.current_cluster.get_root_state())
+        similarity = self.__max_cluster_similarity(self.utg.current_cluster)
         # self.logger.debug(f"Similarity between State{self.current_state.get_id()} and CurrentCluster{self.utg.current_cluster.get_id()}'s root state is {similarity}")
         if similarity > threshold:
             return self.utg.current_cluster
@@ -222,13 +222,20 @@ class UtgBasedInputPolicy(InputPolicy):
         max_similarity = 0
         ret: Optional[StateCluster] = None
         for cluster in self.utg.clusters:
-            root_state = cluster.get_root_state()
-            similarity = self.current_state.compute_similarity(root_state)
+            similarity = self.__max_cluster_similarity(cluster)
             # self.logger.debug(f"Similarity between State{self.current_state.get_id()} and Cluster{cluster.get_id()}'s root state{root_state.get_id()} is {similarity}")
             if similarity > threshold and similarity > max_similarity:
                 max_similarity = similarity
                 ret = cluster
         return ret
+
+    def __max_cluster_similarity(self, cluster: StateCluster) -> float:
+        max_similarity = 0.0
+        for state in cluster.get_representative_states():
+            similarity = self.current_state.compute_similarity(state)
+            if similarity > max_similarity:
+                max_similarity = similarity
+        return max_similarity
 
     def __check_should_wait(self) -> bool:
         # 返回 True 表示自主探索收益变低，需要等待 LLM 完成已有页面摘要并进入 Guidance。

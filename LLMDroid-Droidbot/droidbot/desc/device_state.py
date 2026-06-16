@@ -1198,13 +1198,15 @@ class DeviceState(object):
             return set()
 
         tokens = set()
-        for value in (
+        values = [
             widget.get_resource_id(),
-            widget.get_text(),
             widget.get_content_desc(),
             widget.get_hint(),
             widget.get_class(),
-        ):
+        ]
+        if self.__is_actionable_widget(widget):
+            values.append(widget.get_text())
+        for value in values:
             tokens.update(self.__normalize_tokens(value))
         return tokens
 

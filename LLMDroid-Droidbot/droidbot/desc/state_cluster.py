@@ -38,6 +38,7 @@ class StateCluster(ActionListener):
         self.logger = get_logger()
         self.__root_state = state
         self.__states: set['DeviceState'] = set()
+        self.__state_order: list['DeviceState'] = [state]
         self.__states.add(state)
         self.__id = total
 
@@ -211,6 +212,7 @@ class StateCluster(ActionListener):
         with self.__lock:
             if state not in self.__states:
                 self.__states.add(state)
+                self.__state_order.append(state)
                 # For the state added later (after the current cluster has been analyzed by llm)
                 if self.__analysed:
                     self.__need_reanalysed = True
@@ -221,6 +223,23 @@ class StateCluster(ActionListener):
 
     def get_states(self) -> set['DeviceState']:
         return self.__states
+
+    def get_state_order(self) -> list['DeviceState']:
+        with self.__lock:
+            return list(self.__state_order)
+
+    def get_representative_states(self, limit: int = 5) -> list['DeviceState']:
+        with self.__lock:
+            if limit <= 0:
+                return []
+            reps = [self.__root_state]
+            for state in reversed(self.__state_order):
+                if state == self.__root_state:
+                    continue
+                reps.append(state)
+                if len(reps) >= limit:
+                    break
+            return reps
 
     def need_reanalysed(self) -> bool:
         # add lock
