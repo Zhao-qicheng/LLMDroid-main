@@ -1311,15 +1311,15 @@ class DeviceState(object):
         )
         similarity = max(0.0, min(1.0, similarity))
 
-        self.logger.debug(
-            f"Similarity State{self.__id}-State{other.__id}: "
-            f"total={similarity:.3f} "
-            f"structure={structure_similarity:.3f} "
-            f"actionable={actionable_similarity:.3f} "
-            f"semantic={semantic_similarity:.3f} "
-            f"activity={activity_similarity:.3f} "
-            f"flags={state_flag_similarity:.3f}"
-        )
+        # self.logger.debug(
+        #     f"Similarity State{self.__id}-State{other.__id}: "
+        #     f"total={similarity:.3f} "
+        #     f"structure={structure_similarity:.3f} "
+        #     f"actionable={actionable_similarity:.3f} "
+        #     f"semantic={semantic_similarity:.3f} "
+        #     f"activity={activity_similarity:.3f} "
+        #     f"flags={state_flag_similarity:.3f}"
+        # )
         return similarity
 
     def get_cluster(self) -> 'StateCluster':

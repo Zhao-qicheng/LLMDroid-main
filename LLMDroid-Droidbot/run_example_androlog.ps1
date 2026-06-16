@@ -1,11 +1,11 @@
 param(
     [string]$DeviceSerial = 'emulator-5554',
     [string]$Python = "D:\DesignSoftware\Python\python.exe",
-    [string]$ApkFileName = "Wikipedia.apk",
+    [string]$ApkFileName = "WishShop.apk",
     [string]$ApkPath = "",
-    [string]$OutputDir = "$PSScriptRoot\output\androlog\Wikipedia\dfs_greedy",
+    [string]$OutputDir = "$PSScriptRoot\output\androlog\WishShop\dfs_greedy",
     [int]$Timeout = 1800,
-    [int]$Interval = 1,
+    [int]$Interval = 2,
     [int]$Count = 1000
 )
 

@@ -2,6 +2,8 @@
 # 1. 实现 DroidBot 原有的 UTG 贪心探索策略，在当前页优先执行未探索事件。
 # 2. 当前页无新事件时，沿 UTG 导航到仍有未探索动作的已知页面。
 # 3. 在 LLMDroid 中作为 EXPLORE 阶段的默认高速探索策略。
+import re
+
 from .input_policy import *
 from .utg_based_policy import UtgBasedInputPolicy
 from ..desc.action_type import ActionType
@@ -112,6 +114,8 @@ class UtgGreedySearchPolicy(UtgBasedInputPolicy):
         if self.device.humanoid is not None:
             possible_events = self.__sort_inputs_by_humanoid(possible_events)
 
+        possible_events = self.__defer_navigation_events(possible_events)
+
         # If there is an unexplored event, try the event first
         # 贪心策略优先执行当前页还没试过的事件，这是 DroidBot 广度覆盖能力的核心。
         for input_event in possible_events:
@@ -144,6 +148,72 @@ class UtgGreedySearchPolicy(UtgBasedInputPolicy):
         self.logger.info("Cannot find an exploration target. Trying to restart app...")
         self.__event_trace += EVENT_FLAG_STOP_APP
         return IntentEvent(intent=stop_app_intent, action_type=ActionType.STOP)
+
+    def __defer_navigation_events(self, possible_events):
+        normal_events = []
+        navigation_events = []
+        back_events = []
+
+        for input_event in possible_events:
+            if isinstance(input_event, KeyEvent) and getattr(input_event, "name", None) == "BACK":
+                back_events.append(input_event)
+            elif self.__is_navigation_touch_event(input_event):
+                navigation_events.append(input_event)
+            else:
+                normal_events.append(input_event)
+
+        if navigation_events:
+            self.logger.debug("Deferred %d navigation-like UI events.", len(navigation_events))
+
+        if self.search_method == POLICY_GREEDY_BFS:
+            return back_events + normal_events + navigation_events
+        return normal_events + navigation_events + back_events
+
+    def __is_navigation_touch_event(self, input_event):
+        if not isinstance(input_event, TouchEvent):
+            return False
+
+        view = getattr(input_event, "view", None)
+        if not view:
+            return False
+
+        text = self.__normalize_view_value(view, "text")
+        content_desc = self.__normalize_view_value(view, "content_description", "content-desc")
+        resource_id = self.__normalize_view_value(view, "resource_id")
+
+        labels = {text, content_desc}
+        navigation_labels = {
+            "navigate up", "back", "go back", "close", "dismiss", "cancel",
+            "previous", "up", "\u8fd4\u56de", "\u5173\u95ed", "\u53d6\u6d88",
+        }
+        if labels.intersection(navigation_labels):
+            return True
+
+        resource_name = resource_id.split("/")[-1]
+        compact_resource_name = re.sub(r"[^a-z0-9]", "", resource_name)
+        navigation_resource_names = {
+            "back", "backbutton", "buttonback", "toolbarback", "navigateup",
+            "navup", "upbutton", "close", "closebutton", "buttonclose",
+            "dismiss", "dismissbutton",
+        }
+        if compact_resource_name in navigation_resource_names:
+            return True
+
+        resource_tokens = set(filter(None, re.split(r"[^a-z0-9]+", resource_name)))
+        if resource_tokens.intersection({"back", "close", "dismiss"}):
+            return True
+        if "navigate" in resource_tokens and "up" in resource_tokens:
+            return True
+
+        return False
+
+    @staticmethod
+    def __normalize_view_value(view, *keys):
+        for key in keys:
+            value = view.get(key)
+            if value is not None:
+                return str(value).strip().lower()
+        return ""
 
     def __sort_inputs_by_humanoid(self, possible_events):
         # Humanoid 可对候选事件重新排序；LLMDroid-Droidbot 不依赖它，但保留兼容入口。
