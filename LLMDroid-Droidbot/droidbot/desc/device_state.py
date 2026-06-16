@@ -603,6 +603,62 @@ class DeviceState(object):
         self.possible_events = possible_events
         return [] + possible_events
 
+    @staticmethod
+    def llm_action_type_value(action_type: ActionType) -> Optional[int]:
+        action_mapping = {
+            ActionType.CLICK: 0,
+            ActionType.LONG_CLICK: 1,
+            ActionType.SCROLL_TOP_DOWN: 2,
+            ActionType.SCROLL_BOTTOM_UP: 3,
+            ActionType.SCROLL_LEFT_RIGHT: 4,
+            ActionType.SCROLL_RIGHT_LEFT: 5,
+            ActionType.INPUT: 6,
+        }
+        return action_mapping.get(action_type)
+
+    def to_llm_action_candidates(self) -> list[dict]:
+        candidates = []
+        seen_actions = set()
+        for event in self.get_possible_input():
+            if not isinstance(event, UIEvent):
+                continue
+            widget = event.get_target()
+            if not widget or not widget.get_visible():
+                continue
+            action_value = DeviceState.llm_action_type_value(event.get_action_type())
+            if action_value is None:
+                continue
+            action_key = (widget.get_id(), action_value)
+            if action_key in seen_actions:
+                continue
+            seen_actions.add(action_key)
+            candidates.append({
+                "element_id": widget.get_id(),
+                "action_type": action_value,
+                "action_name": event.get_action_type().string,
+                "widget_html": widget.to_html().strip(),
+                "text": widget.get_text(),
+                "content_desc": widget.get_content_desc(),
+                "resource_id": widget.get_resource_id(),
+                "class": widget.get_class(),
+                "visit_count": event.get_visit_count(),
+            })
+        return candidates
+
+    def find_event_by_llm_action(self, widget_id: int, action_offset: int) -> Optional['InputEvent']:
+        for event in self.get_possible_input():
+            if not isinstance(event, UIEvent):
+                continue
+            target = event.get_target()
+            if not target:
+                continue
+            if target.get_id() != widget_id:
+                continue
+            if DeviceState.llm_action_type_value(event.get_action_type()) == action_offset:
+                return event
+        self.logger.warning(f"State{self.__id}: No LLM candidate matched by widget{widget_id} and action {action_offset}")
+        return None
+
     def get_text_representation(self, merge_buttons=False):
         """
         Get a text representation of current state

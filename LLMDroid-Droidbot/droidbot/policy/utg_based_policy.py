@@ -384,6 +384,10 @@ class UtgBasedInputPolicy(InputPolicy):
         self.__llm_agent.push_to_queue(QuestionPayload(mode=QuestionMode.GUIDE))
         # get target state and function
         self.__navigate_target, self.__function_to_test = self.__future.result()
+        if self.__navigate_target < 0 or not self.__function_to_test:
+            self.logger.warning("LLM Guidance did not return a valid target; switch back to EXPLORE")
+            self.__prepare_back_to_explore(mark_tested=False)
+            return
         # Calculate path to target state
         paths = self.utg.get_paths(target_state_id=self.__navigate_target, source_state=self.current_state)
         # Set path
@@ -411,6 +415,7 @@ class UtgBasedInputPolicy(InputPolicy):
         elif self.__failure_in_single_round < 3:
             # If less than three times, change the target. ask for guidance again
             self.__failure_in_single_round += 1
+            self.__llm_agent.record_target_navigation_failure()
             # It is considered that this function cannot be tested, but still mark it as tested.
             self.__llm_agent.add_tested_function()
             self.__prepare_for_navigate()
@@ -455,7 +460,7 @@ class UtgBasedInputPolicy(InputPolicy):
             self.__event_by_llm = None
             self.logger.warning(f"TEST FUNCTION for over 5 steps, quit!")
 
-    def __prepare_back_to_explore(self):
+    def __prepare_back_to_explore(self, mark_tested: bool = True):
         # 一轮 LLM Guidance 结束后清理局部状态，并触发必要的 cluster 重分析。
         self.logger.info("Get ready to switch to EXPLORE mode")
         self.__current_mode = Mode.EXPLORE
@@ -468,7 +473,8 @@ class UtgBasedInputPolicy(InputPolicy):
         self.__executed_steps = 0
         self.__llm_agent.clear_executed_events()
         # consider the function is tested whether succeed or not
-        self.__llm_agent.add_tested_function()
+        if mark_tested:
+            self.__llm_agent.add_tested_function()
         # reanalyze clusters
         self.__additional_cluster_analysis()
 

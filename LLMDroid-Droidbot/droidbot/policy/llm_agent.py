@@ -3,7 +3,6 @@
 # 2. 异步处理页面摘要、目标功能选择、目标页动作选择和页面簇重分析四类任务。
 # 3. 将模型输出转成 StateCluster/UTG 可使用的结构化目标或 DroidBot 可执行的 InputEvent。
 import os.path
-import sys
 from enum import Enum
 import threading
 import json
@@ -11,7 +10,7 @@ import re
 from concurrent.futures import Future
 import time
 from queue import Queue, Empty
-from typing import Optional, TYPE_CHECKING, TypedDict
+from typing import Any, Callable, Optional, TYPE_CHECKING, TypedDict
 from openai import OpenAI
 
 from ..desc.action_type import ActionType
@@ -59,6 +58,119 @@ class WidgetInfo(TypedDict):
     state: 'DeviceState'
     importance: int
     widget: 'Widget'
+
+
+ValidationResult = tuple[bool, str]
+
+
+def _config_bool(value: Any, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    return bool(value)
+
+
+def extract_json_object(response: str) -> tuple[Optional[dict], str]:
+    if not isinstance(response, str) or not response.strip():
+        return None, "response is empty"
+
+    response = response.strip()
+    pos = response.find('{')
+    if pos != -1:
+        response = response[pos:]
+    pos = response.rfind('}')
+    if pos != -1:
+        response = response[:pos + 1]
+    try:
+        parsed = json.loads(response)
+    except Exception as e:
+        return None, f"response is not valid JSON: {e}"
+    if not isinstance(parsed, dict):
+        return None, "top-level JSON value must be an object"
+    return parsed, ""
+
+
+def validate_overview_response(response: Any) -> ValidationResult:
+    if not isinstance(response, dict):
+        return False, "response must be a JSON object"
+    overview = response.get("Overview")
+    if not isinstance(overview, str):
+        return False, '"Overview" must be a string'
+    function_list = response.get("Function List")
+    if not isinstance(function_list, dict):
+        return False, '"Function List" must be an object'
+    for function, element_id in function_list.items():
+        if not isinstance(function, str):
+            return False, '"Function List" keys must be strings'
+        if type(element_id) is not int:
+            return False, f'"Function List" value for {function!r} must be an integer element id'
+    top5 = response.get("Top5", response.get("Top 5"))
+    if top5 is not None:
+        if not isinstance(top5, list):
+            return False, '"Top5" must be an array when present'
+        for elem in top5:
+            if not isinstance(elem, (int, str)):
+                return False, '"Top5" entries must be integers or State strings'
+    return True, ""
+
+
+def validate_guidance_response(response: Any, valid_targets: dict[str, set[str]]) -> ValidationResult:
+    if not isinstance(response, dict):
+        return False, "response must be a JSON object"
+    target_state = response.get("Target State")
+    target_function = response.get("Target Function")
+    if not isinstance(target_state, str) or not re.fullmatch(r"State\d+", target_state):
+        return False, '"Target State" must be a string like "State2"'
+    if not isinstance(target_function, str):
+        return False, '"Target Function" must be a string'
+    if target_state not in valid_targets:
+        return False, f'"Target State" {target_state!r} is not in the provided State Information'
+    if target_function not in valid_targets[target_state]:
+        return False, (
+            f'"Target Function" {target_function!r} must be copied exactly from '
+            f'{target_state}.FunctionList'
+        )
+    return True, ""
+
+
+def validate_test_function_response(response: Any, valid_actions: set[tuple[int, int]]) -> ValidationResult:
+    if not isinstance(response, dict):
+        return False, "response must be a JSON object"
+    element_id = response.get("Element Id")
+    action_type = response.get("Action Type")
+    if type(element_id) is not int:
+        return False, '"Element Id" must be an integer'
+    if type(action_type) is not int:
+        return False, '"Action Type" must be an integer'
+    if not 0 <= action_type <= 6:
+        return False, '"Action Type" must be an integer from 0 to 6'
+    if element_id == -1:
+        if action_type != 0:
+            return False, 'when "Element Id" is -1, "Action Type" must be 0'
+        return True, ""
+    if (element_id, action_type) not in valid_actions:
+        return False, f"({element_id}, {action_type}) is not one of the provided candidate actions"
+    if action_type == 6:
+        input_text = response.get("Input")
+        if not isinstance(input_text, str) or not input_text.strip():
+            return False, '"Input" must be a non-empty string when "Action Type" is 6'
+    return True, ""
+
+
+def validate_reanalysis_response(response: Any, valid_ids: set[str]) -> ValidationResult:
+    if not isinstance(response, dict):
+        return False, "response must be a JSON object"
+    for control_id, function in response.items():
+        if not isinstance(control_id, str) or not re.fullmatch(r"\d+", control_id):
+            return False, "all keys must be string representations of integer control ids"
+        if control_id not in valid_ids:
+            return False, f"control id {control_id!r} is not present in the provided controls"
+        if not isinstance(function, str):
+            return False, f"function for control id {control_id!r} must be a string"
+    return True, ""
 
 
 class LLMAgent:
@@ -112,9 +224,13 @@ class LLMAgent:
         self.__overview_workers = max(1, int(llm_config.get('OverviewWorkers', 2)))
         self.__reanalysis_workers = max(1, int(llm_config.get('ReanalysisWorkers', 1)))
         self.__guidance_wait_timeout = max(0, int(llm_config.get('GuidanceWaitTimeout', 45)))
+        self.__request_timeout = max(1, int(llm_config.get('RequestTimeout', 120)))
+        self.__max_repair_retries = max(0, int(llm_config.get('MaxRepairRetries', 2)))
+        self.__use_response_format = _config_bool(llm_config.get('UseResponseFormat'), True)
+        self.__response_format_supported = self.__use_response_format
         # init client
         # 使用 OpenAI SDK 的兼容接口，因此 BaseUrl 可以指向第三方 OpenAI-compatible 服务。
-        self.__client = OpenAI(api_key=self.__api_key, base_url=LLMAgent.BASE_URL, timeout=30000)
+        self.__client = OpenAI(api_key=self.__api_key, base_url=LLMAgent.BASE_URL, timeout=self.__request_timeout)
         self.__file_lock = threading.Lock()
 
         # overview
@@ -126,7 +242,7 @@ class LLMAgent:
         self.__future: Future = None
         self.__future_lock = threading.Lock()
 
-        self.__tested_functions: set[str] = set()
+        self.__tested_functions: set[tuple[int, str]] = set()
         self.__tested_functions_lock = threading.Lock()
         self.__target_id: int = -1
         self.__target_func: str = ''
@@ -202,6 +318,7 @@ class LLMAgent:
             )
         elif payload.mode == QuestionMode.REANALYSIS:
             # reanalysis 只补充已有 cluster 的功能信息，且仅对高价值 cluster 做，降低 LLM 成本。
+            self.__refresh_top_valued_clusters()
             with self.__top_valued_cluster_lock:
                 should_reanalyse = payload.cluster in self.__top_valued_cluster[:self.__p2]
             if should_reanalyse:
@@ -229,6 +346,7 @@ class LLMAgent:
     def __work_loop(self, queue: Queue, worker_name: str, allowed_modes: set[QuestionMode]):
         # 子线程循环消费 LLM 任务。不同队列的任务互不等待，避免 overview/reanalysis 阻塞 Guidance。
         while True:
+            payload = None
             try:
                 try:
                     payload = queue.get(timeout=1)
@@ -255,6 +373,11 @@ class LLMAgent:
                 self.logger.error(f"LLM worker({worker_name}) error: {e}")
                 import traceback
                 traceback.print_exc()
+                if payload is not None:
+                    if payload.mode == QuestionMode.GUIDE:
+                        self.__set_future_result((-1, ""))
+                    elif payload.mode == QuestionMode.TEST_FUNCTION:
+                        self.__set_future_result(None)
 
     def __mark_payload_done(self, payload: QuestionPayload):
         with self.__question_count_lock:
@@ -292,10 +415,22 @@ class LLMAgent:
         with self.__top_valued_cluster_lock:
             return len(self.__top_valued_cluster) > 0
 
+    def __refresh_top_valued_clusters(self):
+        scored_clusters = [
+            cluster for cluster in self.__utg.clusters
+            if cluster and cluster.has_untested_function()
+        ]
+        if not scored_clusters:
+            scored_clusters = [cluster for cluster in self.__utg.clusters if cluster]
+        scored_clusters.sort(key=lambda cluster: cluster.get_guidance_score(), reverse=True)
+        with self.__top_valued_cluster_lock:
+            self.__top_valued_cluster = scored_clusters
+
     def __ask_for_overview(self, payload: QuestionPayload):
         # OVERVIEW：让 LLM 阅读一个新页面簇的 HTML 描述，产出页面概览和可测试功能列表。
         if payload.cluster is None:
             self.logger.warning("Payload's state is None, skip")
+            return
 
         self.logger.info(f"Ask for StateCluster's overview")
         # time.sleep(3)
@@ -306,60 +441,21 @@ class LLMAgent:
         prompt += payload.cluster.to_description()[:7000] + "\n"
         prompt += "```\n"
 
-        with self.__top_valued_cluster_lock:
-            top_snapshot = list(self.__top_valued_cluster)
+        prompt += required_output_overview2 + required_output_overview_summary2 + answer_format_overview2
 
-        ask_top5 = len(top_snapshot) >= 5
-        if ask_top5:
-            # 已有足够 cluster 时，请 LLM 顺带维护 Top5，高价值列表用于减少后续目标搜索空间。
-            # ask gpt to maintain the M list
-            prompt += required_output_overview
-            count = 0
-            top5: dict[str, TopCluster] = {}
-            for cluster in top_snapshot:
-                if cluster.has_untested_function():
-                    cluster.write_overview_top5_tojson(top5)
-                    count += 1
-                    if count == 5:
-                        break
-            prompt += f"Current State: {payload.cluster.get_id()}\n"
-            prompt += f"Five other States:\n{json.dumps(top5, ensure_ascii=False, indent=4)}\n"
-            prompt += required_output_overview_summary + answer_format_overview
-        else:
-            # 启动早期 cluster 数量较少，直接追加当前页面摘要即可。
-            prompt += required_output_overview2 + required_output_overview_summary2 + answer_format_overview2
-
-        json_resp = self.__get_response(prompt)
+        json_resp = self.__get_structured_response(
+            prompt=prompt,
+            validator=validate_overview_response,
+            mode=QuestionMode.OVERVIEW,
+        )
+        if json_resp is None:
+            self.logger.warning(f"Skip overview update for Cluster{payload.cluster.get_id()} because LLM failed")
+            return
 
         # process response
         # 将模型返回的 overview/function list 写回 StateCluster，后续目标选择会读取这些结构化信息。
         payload.cluster.update_from_overview(json_resp)
-        with self.__top_valued_cluster_lock:
-            top_list = json_resp.get("Top5", json_resp.get("Top 5"))
-            if ask_top5 and top_list:
-                new_top_clusters = []
-                for elem in top_list:
-                    cluster = None
-                    if isinstance(elem, int):
-                        cluster = self.__utg.find_cluster_by_id(elem)
-                    elif isinstance(elem, str):
-                        try:
-                            cluster = self.__utg.find_cluster_by_id(int(elem[5:]))
-                        except ValueError:
-                            self.logger.warning(f"Unexpected cluster id in LLM response: {elem}")
-                    else:
-                        self.logger.warning(f"LLM's response is neither an int list nor string list")
-                    if cluster:
-                        new_top_clusters.append(cluster)
-                if payload.cluster not in new_top_clusters:
-                    new_top_clusters.append(payload.cluster)
-                if new_top_clusters:
-                    self.__top_valued_cluster = new_top_clusters + [
-                        cluster for cluster in self.__top_valued_cluster
-                        if cluster and cluster not in new_top_clusters
-                    ]
-            else:
-                self.__top_valued_cluster.append(payload.cluster)
+        self.__refresh_top_valued_clusters()
 
     def __ask_for_guidance(self, payload: QuestionPayload):
         # GUIDE：当覆盖率/时间触发停滞时，让 LLM 在高价值 cluster 中选择下一轮目标功能。
@@ -367,6 +463,7 @@ class LLMAgent:
         prompt = self.__start_prompt + input_explanation_guidance
 
         cluster_info = {}
+        self.__refresh_top_valued_clusters()
         with self.__top_valued_cluster_lock:
             top_snapshot = list(self.__top_valued_cluster[:self.__p2])
         for cluster in top_snapshot:
@@ -377,18 +474,36 @@ class LLMAgent:
             self.logger.warning("[Ask for guidance] all clusters' functions are tested")
             for cluster in top_snapshot:
                 cluster.write_overview_top5_tojson(cluster_info, ignore_importance=True)
+        if len(cluster_info) == 0:
+            self.logger.warning("[Ask for guidance] no available cluster information")
+            self.__set_future_result((-1, ""))
+            return
         prompt += f"\n```State Information\n{json.dumps(cluster_info, ensure_ascii=False, indent=4)}\n```\n"
 
         # tested functions
-        prompt += required_output_guidance1 + "{"
+        tested_by_state: dict[str, list[str]] = {}
         with self.__tested_functions_lock:
             tested_functions = set(self.__tested_functions)
-        for func in tested_functions:
-            prompt += f"{func}, "
-        prompt += "}" + required_output_guidance2
+        for cluster_id, func in tested_functions:
+            tested_by_state.setdefault(f"State{cluster_id}", []).append(func)
+        prompt += required_output_guidance1
+        prompt += json.dumps(tested_by_state, ensure_ascii=False, indent=4)
+        prompt += required_output_guidance2
         prompt += answer_format_guidance
 
-        json_resp = self.__get_response(prompt)
+        valid_targets = {
+            state_name: set(info.get("FunctionList", []))
+            for state_name, info in cluster_info.items()
+        }
+        json_resp = self.__get_structured_response(
+            prompt=prompt,
+            validator=lambda response: validate_guidance_response(response, valid_targets),
+            mode=QuestionMode.GUIDE,
+            repair_context=f"Valid targets are: {json.dumps(cluster_info, ensure_ascii=False)}",
+        )
+        if json_resp is None:
+            self.__set_future_result((-1, ""))
+            return
         self.__target_id = int(json_resp['Target State'][5:])
         self.__target_func = json_resp['Target Function']
 
@@ -409,7 +524,23 @@ class LLMAgent:
 
         prompt = self.__start_prompt + input_explanation_test
         html = payload.state.to_html()
+        candidates = payload.state.to_llm_action_candidates()
+        valid_actions = {
+            (candidate["element_id"], candidate["action_type"])
+            for candidate in candidates
+        }
+        candidate_html = {
+            (candidate["element_id"], candidate["action_type"]): candidate["widget_html"]
+            for candidate in candidates
+        }
+        if not candidates:
+            self.logger.warning("Current page has no LLM action candidates")
+            self.__set_future_result(None)
+            return
         prompt += f"\n```Page Description\n{html}```\n"
+        prompt += "\n```Candidate Actions\n"
+        prompt += json.dumps(candidates, ensure_ascii=False, indent=4)
+        prompt += "\n```\n"
 
         # function to test
         prompt += f"The target function I want to test is: {self.__target_func}\n"
@@ -426,7 +557,15 @@ class LLMAgent:
         if executed_events:
             prompt += answer_format_test_empty
 
-        json_resp = self.__get_response(prompt)
+        json_resp = self.__get_structured_response(
+            prompt=prompt,
+            validator=lambda response: validate_test_function_response(response, valid_actions),
+            mode=QuestionMode.TEST_FUNCTION,
+            repair_context=f"Valid candidate actions are: {json.dumps(candidates, ensure_ascii=False)}",
+        )
+        if json_resp is None:
+            self.__set_future_result(None)
+            return
 
         widget_id = self.__parse_int_field(json_resp, 'Element Id')
         action_offset = self.__parse_int_field(json_resp, 'Action Type')
@@ -445,7 +584,9 @@ class LLMAgent:
             self.__set_future_result(None)
             return
 
-        ret = payload.state.find_event_by_id_and_type(widget_id, act_type)
+        ret = payload.state.find_event_by_llm_action(widget_id, action_offset)
+        if ret is None:
+            ret = payload.state.find_event_by_id_and_type(widget_id, act_type)
         if ret:
             # set text to InputEvent
             # 如果模型返回 Input 字段，只在 SetTextEvent 上写入真实输入文本。
@@ -457,13 +598,11 @@ class LLMAgent:
                     self.logger.warning(f"Can't set text to event:{ret.to_description()}")
             # extract corresponding line in html
             # 记录已执行动作的 HTML 行，下一轮 prompt 会告知模型避免重复操作。
-            for line in html.splitlines():
-                if f"id={widget_id}" in line:
-                    s = ret.to_description(html=line.split('\t')[-1])
-                    self.logger.debug(s)
-                    with self.__executed_events_lock:
-                        self.__executed_events.append(ret.to_description(html=line.split('\t')[-1]))
-                    break
+            executed_html = candidate_html.get((widget_id, action_offset), "")
+            s = ret.to_description(html=executed_html)
+            self.logger.debug(s)
+            with self.__executed_events_lock:
+                self.__executed_events.append(s)
         # None type will be handled by utg_based_policy
         self.__set_future_result(ret)
 
@@ -513,7 +652,16 @@ class LLMAgent:
         prompt += required_output_reanalysis + answer_format_reanalysis
         # rank clusters and functions
 
-        json_resp = self.__get_response(prompt)
+        valid_ids = {str(widget_ids[0]) for widget_ids in unique_widgets.values()}
+        json_resp = self.__get_structured_response(
+            prompt=prompt,
+            validator=lambda response: validate_reanalysis_response(response, valid_ids),
+            mode=QuestionMode.REANALYSIS,
+            repair_context=f"Valid control ids are: {sorted(valid_ids)}",
+        )
+        if json_resp is None:
+            self.logger.warning(f"Skip reanalysis update for Cluster{payload.cluster.get_id()} because LLM failed")
+            return
 
         # process response
         # 根据模型结果更新功能列表，并把新功能绑定回对应 widget/action listener。
@@ -523,64 +671,115 @@ class LLMAgent:
         payload.cluster.update_from_reanalysis(json_resp, unique_widgets, widgets_dict)
         # TODO update top clusters
 
-    def __get_response(self, prompt: str) -> json:
-        # 统一的大模型调用入口：保存 prompt、重试请求、记录耗时/响应长度、解析 JSON。
+    def __create_chat_completion(self, messages: list[dict], use_response_format: bool):
+        request_kwargs = {
+            "temperature": 0,
+            "messages": messages,
+            "model": LLMAgent.MODEL_STR,
+        }
+        if use_response_format:
+            request_kwargs["response_format"] = {"type": "json_object"}
+        try:
+            return self.__client.chat.completions.create(**request_kwargs)
+        except Exception as e:
+            if use_response_format:
+                self.__response_format_supported = False
+                self.logger.warning(
+                    f"response_format is not supported or failed ({e}); fallback to plain chat completion"
+                )
+                return self.__client.chat.completions.create(
+                    temperature=0,
+                    messages=messages,
+                    model=LLMAgent.MODEL_STR,
+                )
+            raise
+
+    def __log_llm_validation_error(self, mode: QuestionMode, attempt: int, validation_error: str,
+                                   raw_response_length: int):
+        content = json.dumps({
+            "mode": mode.name,
+            "attempt": attempt,
+            "validation_error": validation_error,
+            "raw_response_length": raw_response_length,
+        }, ensure_ascii=False, indent=4)
+        with self.__file_lock:
+            save_content_to_file(self.__QA_file, title='Validation Error', content=content)
+
+    def __get_structured_response(self, prompt: str, validator: Callable[[dict], ValidationResult],
+                                  mode: QuestionMode, repair_context: Optional[str] = None) -> Optional[dict]:
+        # 统一的大模型调用入口：保存 prompt、重试请求、记录耗时/响应长度、解析和校验 JSON。
         with self.__file_lock:
             save_content_to_file(self.__QA_file, title='Prompt', content=prompt)
-        begin_stamp = time.time()
-        try_times = 0
-        chat_completion = None
-        while try_times < 5:
-            try:
-                chat_completion = self.__client.chat.completions.create(
-                    # temperature=0 保持输出稳定；探索随机性由测试策略而不是模型采样承担。
-                    temperature=0,
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": prompt,
-                        }
-                    ],
-                    model=LLMAgent.MODEL_STR,
-                    # other params
-                )
-                if chat_completion:
-                    break
-            except Exception as e:
-                self.logger.warning(f"Exception:{e}, try to ask again in 3 seconds")
-                time.sleep(3)
-                try_times += 1
+        messages = [{"role": "user", "content": prompt}]
+        request_attempt = 0
+        validation_error = ""
+        max_total_attempts = max(1, 1 + self.__max_repair_retries)
 
-        if try_times == 5:
-            self.logger.error("Error when getting LLM's response, stop testing!")
-            sys.exit()
+        while request_attempt < max_total_attempts:
+            request_attempt += 1
+            begin_stamp = time.time()
+            chat_completion = None
+            try_times = 0
+            while try_times < 5:
+                try:
+                    chat_completion = self.__create_chat_completion(
+                        messages=messages,
+                        use_response_format=self.__response_format_supported,
+                    )
+                    if chat_completion:
+                        break
+                except Exception as e:
+                    self.logger.warning(f"Exception:{e}, try to ask again in 3 seconds")
+                    time.sleep(3)
+                    try_times += 1
 
-        # get response
-        response = chat_completion.choices[0].message.content
-        end_stamp = time.time()
-        # LLM-Interaction.txt 只记录每次调用耗时和响应长度，便于估算成本/吞吐。
-        with self.__file_lock:
-            with open(os.path.join(self.__app.output_dir, 'LLM-Interaction.txt'), 'a') as file:
-                time_difference = round(end_stamp - begin_stamp, 5)
-                file.write(f"{time_difference}, {len(response)}\n")
-        self.logger.info(f"Get response:\n{response}")
-        with self.__file_lock:
-            save_content_to_file(self.__QA_file, title='Response', content=response)
-        # Cut the part between curly brackets
-        # 模型有时会在 JSON 前后加解释文字，这里截取最外层花括号以提高容错性。
-        pos = response.find('{')
-        if pos != -1:
-            response = response[pos:]
-        pos = response.rfind('}')
-        if pos != -1:
-            response = response[:pos + 1]
+            if chat_completion is None:
+                validation_error = "LLM request failed after 5 retries"
+                self.logger.error(validation_error)
+                self.__log_llm_validation_error(mode, request_attempt, validation_error, 0)
+                return None
 
-        try:
-            json_resp = json.loads(response)
-            return json_resp
-        except Exception as e:
-            self.logger.warning(f"Exception({e}) occurred when transferring llm's response to json, try to get response again")
-            return self.__get_response(prompt)
+            response = chat_completion.choices[0].message.content or ""
+            end_stamp = time.time()
+            with self.__file_lock:
+                with open(os.path.join(self.__app.output_dir, 'LLM-Interaction.txt'), 'a') as file:
+                    time_difference = round(end_stamp - begin_stamp, 5)
+                    file.write(f"{time_difference}, {len(response)}\n")
+            self.logger.info(f"Get response:\n{response}")
+            with self.__file_lock:
+                save_content_to_file(self.__QA_file, title='Response', content=response)
+
+            json_resp, parse_error = extract_json_object(response)
+            if json_resp is None:
+                validation_error = parse_error
+            else:
+                valid, validation_error = validator(json_resp)
+                if valid:
+                    return json_resp
+
+            self.logger.warning(
+                f"Invalid LLM response for {mode.name}, attempt {request_attempt}/{max_total_attempts}: "
+                f"{validation_error}"
+            )
+            self.__log_llm_validation_error(mode, request_attempt, validation_error, len(response))
+            if request_attempt >= max_total_attempts:
+                break
+
+            repair_prompt = (
+                "Your previous response was invalid.\n"
+                f"Validation error: {validation_error}\n"
+                "Return only a corrected JSON object that satisfies the original task and schema."
+            )
+            if repair_context:
+                repair_prompt += f"\n{repair_context}"
+            messages = [
+                {"role": "user", "content": prompt},
+                {"role": "assistant", "content": response},
+                {"role": "user", "content": repair_prompt},
+            ]
+
+        self.logger.error(f"LLM failed to produce valid {mode.name} response: {validation_error}")
+        return None
 
     def set_future(self, future):
         # UtgBasedInputPolicy 每次同步等待 LLM 结果前都会重置 Future。
@@ -612,13 +811,21 @@ class LLMAgent:
         also mark the function in the corresponding cluster as tested
         """
         # 不论目标是否完全成功，结束一轮 Guidance 后都标记为已尝试，避免反复卡在同一功能。
+        if self.__target_id < 0 or not self.__target_func:
+            self.logger.warning("Skip marking tested function because target is empty")
+            return
         with self.__tested_functions_lock:
-            self.__tested_functions.add(self.__target_func)
+            self.__tested_functions.add((self.__target_id, self.__target_func))
         cluster = self.__utg.find_cluster_by_id(self.__target_id)
         if cluster:
             cluster.update_tested_function(self.__target_func)
         else:
             self.logger.warning(f"Can't find Cluster{self.__target_id} when marking function({self.__target_func}) as tested")
+
+    def record_target_navigation_failure(self):
+        cluster = self.__utg.find_cluster_by_id(self.__target_id)
+        if cluster:
+            cluster.record_navigation_failure()
 
     def clear_executed_events(self):
         # 一轮目标功能测试结束后清空动作历史，避免影响下一轮目标的 prompt。

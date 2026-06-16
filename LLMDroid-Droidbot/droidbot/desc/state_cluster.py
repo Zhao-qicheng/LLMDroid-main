@@ -50,6 +50,7 @@ class StateCluster(ActionListener):
         self.__lock = threading.Lock()
         self.__listener_lock = threading.Lock()
         self.__need_reanalysed: bool = False
+        self.__navigation_failure_count: int = 0
 
     def get_root_state(self) -> 'DeviceState':
         return self.__root_state
@@ -246,6 +247,40 @@ class StateCluster(ActionListener):
                 if self.__functions[function]['importance'] > 0:
                     return True
             return False
+
+    def record_navigation_failure(self):
+        with self.__lock:
+            self.__navigation_failure_count += 1
+
+    def get_guidance_score(self) -> int:
+        with self.__lock:
+            untested_functions = [
+                (function, detail)
+                for function, detail in self.__functions.items()
+                if detail['importance'] > 0
+            ]
+            if not untested_functions:
+                return -100000 - self.__navigation_failure_count * 50
+
+            score = 0
+            score += len(untested_functions) * 100
+            score += sum(detail['importance'] for _, detail in untested_functions) * 10
+            navigation_keywords = (
+                "navigate", "navigation", "open", "go to", "enter", "switch",
+                "tab", "menu", "drawer", "settings", "search", "browse",
+                "跳转", "导航", "打开", "进入", "切换", "菜单", "设置", "搜索"
+            )
+            for function, _ in untested_functions:
+                lower_func = function.lower()
+                if any(keyword in lower_func for keyword in navigation_keywords):
+                    score += 80
+
+            root_activity = self.__root_state.foreground_activity.lower()
+            if any(keyword in root_activity for keyword in ("main", "home", "launcher")):
+                score += 60
+            score += min(len(self.__states), 5) * 10
+            score -= self.__navigation_failure_count * 50
+            return score
 
     def write_overview_top5_tojson(self, top5, ignore_importance: bool = False):
         """
