@@ -1,12 +1,12 @@
 param(
-    [string]$DeviceSerial = 'emulator-5556',
+    [string]$DeviceSerial = 'emulator-5554',
     [string]$Python = "D:\DesignSoftware\Python\python.exe",
-    [string]$ApkFileName = "renpho_health.apk",
+    [string]$ApkFileName = "fing.apk",
     [string]$ApkPath = "",
-    [string]$OutputDir = "$PSScriptRoot\output\androlog\renpho_health\dfs_greedy",
+    [string]$OutputDir = "$PSScriptRoot\output\androlog\fing\dfs_greedy",
     [int]$Timeout = 1800,
-    [int]$Interval = 3,
-    [int]$Count = 100
+    [int]$Interval = 1,
+    [int]$Count = 1000
 )
 
 $projectRoot = Join-Path $PSScriptRoot ".."

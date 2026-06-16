@@ -1,15 +1,15 @@
 {
-    "AppName": "Renpho Health",
-    "Description": "Renpho Health is an app designed to track various body composition metrics such as BMI, body fat percentage, body water, bone mass, basal metabolism, body age, and muscle mass. It syncs with devices like body fat scales, smart jump ropes, and treadmills. The app offers cloud-based data analysis, generating charts and reports that can be shared easily. Renpho Health supports multiple users, making it suitable for families, and can also sync with third-party apps like Google Fit to provide a comprehensive health tracking experience.",
+    "AppName": "Fing",
+    "Description": "This app is a networking toolset app that can scan devices on the network, assess network status, and analyze network security. It also provides many useful utilities such as ping, port scanning, and speed test.",
     "ApiKey": "sk-a8fcc94497e94f999fadded6477fc9a4",
     "BaseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    "Model": "qwen3.5-plus-2026-04-20",
-    "TotalMethod": 395367,
-    "Tag": "RENPHO_HEALTH_WCX_LOG",
+    "Model": "qwen3.6-plus",
+    "TotalMethod": 62491,
+    "Tag": "FING_SUPER_LOG",
     "Window": 100,
     "LLMAgent": {
-        "OverviewWorkers": 2,
-        "ReanalysisWorkers": 1,
+        "OverviewWorkers": 5,
+        "ReanalysisWorkers": 3,
         "GuidanceWaitTimeout": 45
     }
 }

@@ -27,6 +27,24 @@ DEFAULT_DATE_TEXT = "2026-01-01"
 DEFAULT_PASSWORD_TEXT = "Password123"
 DEFAULT_SEARCH_TEXT = "test"
 
+HTML_MAX_TAGS = 100
+HTML_MAX_DEPTH = 25
+HTML_NAV_TOP_RATIO = 0.18
+HTML_NAV_BOTTOM_RATIO = 0.18
+HTML_NAV_KEYWORDS = (
+    "toolbar", "actionbar", "appbar", "navigation", "nav", "bottom", "tab", "menu", "drawer"
+)
+HTML_IMPORTANT_KEYWORDS = (
+    "search", "find", "query", "submit", "send", "save", "done", "next", "continue", "start",
+    "confirm", "ok", "yes", "allow", "agree", "login", "log in", "sign in", "register",
+    "skip", "guest", "not now", "稍后", "跳过", "游客", "登录", "注册", "确认", "同意", "继续",
+    "完成", "保存", "搜索"
+)
+HTML_SYSTEM_BAR_RESOURCE_IDS = {
+    'android:id/navigationBarBackground',
+    'android:id/statusBarBackground'
+}
+
 
 class DeviceState(object):
     """
@@ -73,6 +91,7 @@ class DeviceState(object):
         self.__html_desc: str = ''
         self.__tab_count: int = 0
         self.__html_tag_count: int = 0
+        self.__html_selected_widget_ids: set[int] = set()
         self.__id = -1
         self.__cluster: StateCluster = None
         self.__lock = threading.Lock()
@@ -783,16 +802,174 @@ class DeviceState(object):
         else:
             return False
 
+    def __is_system_bar_view(self, view_dict) -> bool:
+        return self.__safe_dict_get(view_dict, 'resource_id') in HTML_SYSTEM_BAR_RESOURCE_IDS
+
+    def __widget_view(self, widget: Widget):
+        widget_id = widget.get_id()
+        if 0 <= widget_id < len(self.views):
+            return self.views[widget_id]
+        return None
+
+    def __widget_text_blob(self, widget: Widget) -> str:
+        view = self.__widget_view(widget) or {}
+        parts = [
+            widget.get_text(),
+            widget.get_content_desc(),
+            widget.get_resource_id(),
+            widget.get_hint(),
+            widget.get_class(),
+            str(self.__safe_dict_get(view, 'resource_id', '')),
+        ]
+        return ' '.join([str(part) for part in parts if part]).lower()
+
+    def __is_in_screen(self, widget: Widget) -> bool:
+        view = self.__widget_view(widget)
+        if not view:
+            return False
+        bounds = self.__safe_dict_get(view, 'bounds')
+        if not bounds:
+            return False
+        left, top = bounds[0]
+        right, bottom = bounds[1]
+        return right > 0 and bottom > 0 and left < self.width and top < self.height
+
+    def __is_nav_region(self, widget: Widget) -> bool:
+        view = self.__widget_view(widget)
+        if not view:
+            return False
+        bounds = self.__safe_dict_get(view, 'bounds')
+        if not bounds or self.height <= 0:
+            return False
+        top = bounds[0][1]
+        bottom = bounds[1][1]
+        center_y = (top + bottom) / 2
+        text_blob = self.__widget_text_blob(widget)
+        in_vertical_nav = (
+            center_y <= self.height * HTML_NAV_TOP_RATIO
+            or center_y >= self.height * (1 - HTML_NAV_BOTTOM_RATIO)
+        )
+        has_nav_keyword = any(keyword in text_blob for keyword in HTML_NAV_KEYWORDS)
+        return in_vertical_nav or has_nav_keyword
+
+    def __has_important_text(self, widget: Widget) -> bool:
+        text_blob = self.__widget_text_blob(widget)
+        return any(keyword in text_blob for keyword in HTML_IMPORTANT_KEYWORDS)
+
+    def __html_actionable_widget_ids(self) -> set[int]:
+        actionable_ids = set()
+        for event in self.get_possible_input():
+            if not isinstance(event, UIEvent):
+                continue
+            target = event.get_target()
+            if target and target.get_visible():
+                actionable_ids.add(target.get_id())
+        return actionable_ids
+
+    def __widget_depth(self, widget: Widget) -> int:
+        depth = 0
+        parent_id = widget.parent
+        while parent_id != -1:
+            depth += 1
+            parent = safe_dict_get(self.views[parent_id], 'widget', None)
+            if not parent:
+                break
+            parent_id = parent.parent
+        return depth
+
+    def __html_widget_with_ancestors(self, widget: Widget) -> set[int]:
+        ids = {widget.get_id()}
+        parent_id = widget.parent
+        while parent_id != -1:
+            parent = safe_dict_get(self.views[parent_id], 'widget', None)
+            if not parent or not parent.get_visible():
+                break
+            ids.add(parent.get_id())
+            parent_id = parent.parent
+        return ids
+
+    def __widget_has_text(self, widget: Widget) -> bool:
+        return bool(widget.get_text() or widget.get_content_desc() or widget.get_resource_id() or widget.get_hint())
+
+    def __html_widget_score(self, widget: Widget, actionable_ids: set[int]) -> int:
+        view = self.__widget_view(widget)
+        if not view or self.__is_system_bar_view(view) or not widget.get_visible():
+            return -100000
+
+        score = 0
+        html_class = widget.get_html_class()
+        if widget.get_id() in actionable_ids:
+            score += 1000
+        if html_class == HtmlClass.INPUT:
+            score += 350
+        elif html_class == HtmlClass.CHECKBOX:
+            score += 300
+        elif html_class == HtmlClass.BUTTON:
+            score += 260
+        elif html_class == HtmlClass.SCROLLER:
+            score += 180
+
+        if self.__is_in_screen(widget):
+            score += 140
+        if self.__is_nav_region(widget):
+            score += 120
+        if self.__has_important_text(widget):
+            score += 90
+        if self.__widget_has_text(widget):
+            score += 35
+        if html_class == HtmlClass.P and not self.__widget_has_text(widget):
+            score -= 160
+
+        score -= self.__widget_depth(widget) * 2
+        position = widget.get_position()
+        if position > 0:
+            score -= min(position, 20) * 3
+        return score
+
+    def __select_html_widget_ids(self) -> tuple[set[int], int, int]:
+        visible_widgets = [
+            widget for widget in self.get_all_widgets()
+            if widget.get_visible()
+            and not self.__is_system_bar_view(self.__widget_view(widget) or {})
+        ]
+        actionable_ids = self.__html_actionable_widget_ids()
+        selected_ids = set()
+
+        if self.__root_widget and self.__root_widget.get_visible():
+            selected_ids.add(self.__root_widget.get_id())
+
+        scored_widgets = []
+        for order, widget in enumerate(visible_widgets):
+            score = self.__html_widget_score(widget, actionable_ids)
+            scored_widgets.append((score, -order, widget))
+
+        scored_widgets.sort(key=lambda item: (item[0], item[1]), reverse=True)
+        for _, _, widget in scored_widgets:
+            if len(selected_ids) >= HTML_MAX_TAGS:
+                break
+            candidate_ids = self.__html_widget_with_ancestors(widget)
+            if candidate_ids.issubset(selected_ids):
+                continue
+            if len(selected_ids | candidate_ids) <= HTML_MAX_TAGS:
+                selected_ids.update(candidate_ids)
+
+        return selected_ids, len(actionable_ids), len(visible_widgets)
+
     def __add_tab(self) -> None:
         for i in range(self.__tab_count):
             self.__html_desc += '\t'
+
+    def __should_render_html_widget(self, widget: Widget) -> bool:
+        return widget.get_id() in self.__html_selected_widget_ids
 
     def __generate_html_recursive(self, parent: Widget):
         # 将 Widget 树转成紧凑 HTML。LLM 看到的是这个 HTML，而不是原始 UIAutomator JSON。
         if not parent.get_visible():
             return
+        if not self.__should_render_html_widget(parent):
+            return
 
-        if self.__tab_count >= 25 or self.__html_tag_count >= 100:
+        if self.__tab_count >= HTML_MAX_DEPTH or self.__html_tag_count >= HTML_MAX_TAGS:
             # 防止复杂页面生成超长 prompt，牺牲部分细节换取模型可处理性和成本可控。
             return
 
@@ -840,10 +1017,16 @@ class DeviceState(object):
                         else:
                             widget_not_merge.append(child)
 
+        widget_not_merge = [
+            widget for widget in widget_not_merge
+            if self.__should_render_html_widget(widget)
+        ]
         has_child: bool = True if widget_not_merge else False
         self.__html_desc += parent.to_html(widget_to_merge, has_child)
 
         for widget in widget_not_merge:
+            if self.__html_tag_count >= HTML_MAX_TAGS:
+                break
             self.__generate_html_recursive(widget)
 
         if has_child:
@@ -861,8 +1044,23 @@ class DeviceState(object):
             if self.__html_desc:
                 return self.__html_desc
 
+            selected_ids, actionable_count, visible_count = self.__select_html_widget_ids()
+            self.__html_selected_widget_ids = selected_ids
+            self.__html_desc = ''
+            self.__html_tag_count = 0
             self.__tab_count = -1
             self.__generate_html_recursive(self.__root_widget)
+            clipped_count = max(0, visible_count - self.__html_tag_count)
+            hit_budget = self.__html_tag_count >= HTML_MAX_TAGS
+            self.logger.debug(
+                "[to_html] visible=%d selected=%d tags=%d actionable=%d clipped=%d hit_budget=%s",
+                visible_count,
+                len(selected_ids),
+                self.__html_tag_count,
+                actionable_count,
+                clipped_count,
+                hit_budget,
+            )
 
             return self.__html_desc
 
