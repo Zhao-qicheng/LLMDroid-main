@@ -9,6 +9,7 @@ import re
 import threading
 import time
 import datetime
+from collections import Counter, deque
 from typing import Optional
 
 from ..utils import md5, safe_dict_get
@@ -1135,7 +1136,8 @@ class DeviceState(object):
     def get_id(self) -> int:
         return self.__id
 
-    def __build_similarity_features(self) -> dict[str, set]:
+    def __build_similarity_features(self) -> dict:
+        structure_histogram = self.__wl_structure_histogram()
         structure_hashes = set()
         actionable_hashes = set()
         semantic_tokens = set()
@@ -1152,11 +1154,122 @@ class DeviceState(object):
             state_flags.update(self.__widget_state_flags(widget))
 
         return {
+            'structure_histogram': structure_histogram,
             'structure_hashes': structure_hashes,
             'actionable_hashes': actionable_hashes,
             'semantic_tokens': semantic_tokens,
             'state_flags': state_flags,
         }
+
+    def __wl_structure_histogram(self, iterations: int = 2) -> Counter:
+        node_views, adj = self.__build_similarity_graph()
+        if not node_views:
+            return Counter()
+
+        root = next(
+            (
+                idx for idx, view in enumerate(node_views)
+                if self.__safe_dict_get(view, 'parent', -1) == -1
+            ),
+            0,
+        )
+        depths = self.__bfs_depth(adj, root)
+        labels = {
+            idx: self.__initial_wl_label(view, depths.get(idx, 0))
+            for idx, view in enumerate(node_views)
+        }
+
+        for _ in range(iterations):
+            labels = {
+                idx: (
+                    'wl',
+                    labels[idx],
+                    tuple(sorted(labels[neighbor] for neighbor in adj.get(idx, ()))),
+                )
+                for idx in range(len(node_views))
+            }
+
+        return Counter(labels.values())
+
+    def __build_similarity_graph(self) -> tuple[list[dict], dict[int, set[int]]]:
+        node_views = []
+        temp_id_to_idx = {}
+
+        for view in self.views:
+            if not self.__safe_dict_get(view, 'visible'):
+                continue
+            if self.__is_system_bar_view(view):
+                continue
+
+            temp_id = self.__safe_dict_get(view, 'temp_id')
+            if temp_id is None:
+                continue
+
+            temp_id_to_idx[temp_id] = len(node_views)
+            node_views.append(view)
+
+        adj = {idx: set() for idx in range(len(node_views))}
+
+        def link(left: int, right: int):
+            adj[left].add(right)
+            adj[right].add(left)
+
+        for idx, view in enumerate(node_views):
+            parent_id = self.__safe_dict_get(view, 'parent', -1)
+            if parent_id in temp_id_to_idx:
+                link(idx, temp_id_to_idx[parent_id])
+
+            for child_id in self.__safe_dict_get(view, 'children', []) or []:
+                if child_id in temp_id_to_idx:
+                    link(idx, temp_id_to_idx[child_id])
+
+        return node_views, adj
+
+    @staticmethod
+    def __bfs_depth(adj: dict[int, set[int]], root: int) -> dict[int, int]:
+        depths = {root: 0}
+        queue = deque([root])
+        while queue:
+            current = queue.popleft()
+            for neighbor in adj.get(current, ()):
+                if neighbor in depths:
+                    continue
+                depths[neighbor] = depths[current] + 1
+                queue.append(neighbor)
+        return depths
+
+    def __initial_wl_label(self, view: dict, depth: int) -> tuple:
+        class_name = (self.__safe_dict_get(view, 'class', '') or 'Unknown').split('.')[-1]
+        resource_id = (self.__safe_dict_get(view, 'resource_id', '') or '').split('/')[-1]
+        role = self.__view_role(view)
+        depth_bucket = min(depth // 2, 8)
+        return ('view', class_name, resource_id, role, depth_bucket)
+
+    @staticmethod
+    def __view_role(view: dict) -> str:
+        if DeviceState.__safe_dict_get(view, 'editable'):
+            return 'input'
+        if DeviceState.__safe_dict_get(view, 'checkable'):
+            return 'check'
+        if DeviceState.__safe_dict_get(view, 'scrollable'):
+            return 'scroll'
+        if DeviceState.__safe_dict_get(view, 'clickable'):
+            return 'click'
+        text = DeviceState.__safe_dict_get(view, 'text', '') or DeviceState.__safe_dict_get(
+            view, 'content_description', ''
+        )
+        return 'text' if text and str(text).strip() else 'layout'
+
+    @staticmethod
+    def __cosine_counter(left: Counter, right: Counter) -> float:
+        if not left or not right:
+            return 0.0
+        dot = sum(left[key] * right[key] for key in (set(left) & set(right)))
+        left_norm = sum(value * value for value in left.values()) ** 0.5
+        right_norm = sum(value * value for value in right.values()) ** 0.5
+        if left_norm == 0 or right_norm == 0:
+            return 0.0
+        return dot / (left_norm * right_norm)
 
     @staticmethod
     def __dice_similarity(left: set, right: set) -> float:
@@ -1278,12 +1391,12 @@ class DeviceState(object):
         # 页面相似度用于 StateCluster 聚类：结构为主，关键控件和语义 token 辅助区分同结构页面。
         self_features = self.__similarity_features
         other_features = other.__similarity_features
-        if not self_features['structure_hashes'] and not other_features['structure_hashes']:
+        if not self_features['structure_histogram'] and not other_features['structure_histogram']:
             return 0.0
 
-        structure_similarity = self.__dice_similarity(
-            self_features['structure_hashes'],
-            other_features['structure_hashes'],
+        structure_similarity = self.__cosine_counter(
+            self_features['structure_histogram'],
+            other_features['structure_histogram'],
         )
         actionable_similarity = self.__dice_similarity(
             self_features['actionable_hashes'],

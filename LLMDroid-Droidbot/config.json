@@ -1,11 +1,11 @@
 {
-    "AppName": "Wish: Shop and Save",
-    "Description": "This app is a mobile shopping app that offers extremely low-priced products, ranging from home goods and fashion apparel to electronics. Features include daily discounts, a user rating system, and global shopping options.",
+    "AppName": "Wikipedia",
+    "Description": "The Wikipedia app is a mobile application that allows users to access the vast content of Wikipedia anytime, anywhere. Users can browse over 40 million articles in more than 40 languages, exploring a wealth of knowledge from around the world.",
     "ApiKey": "sk-a8fcc94497e94f999fadded6477fc9a4",
     "BaseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    "Model": "qwen3.6-plus-2026-04-02",
-    "TotalMethod": 241862,
-    "Tag": "WISH_SHOP_WCX_LOG",
+    "Model": "qwen3.6-flash",
+    "TotalMethod": 79210,
+    "Tag": "WIKI_WCX_LOG",
     "Window": 100,
     "LLMAgent": {
         "OverviewWorkers": 5,

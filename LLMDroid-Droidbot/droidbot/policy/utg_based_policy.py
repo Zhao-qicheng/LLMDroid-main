@@ -75,7 +75,13 @@ class UtgBasedInputPolicy(InputPolicy):
                 if log_identifier == '' or total == -1:
                     self.logger.error("Must specify Tag and TotalMethod in config.json when using androlog!")
                     raise Exception("Must specify Tag and TotalMethod in config.json when using androlog!")
-            self.__cv_monitor = AndroLogCVMonitor(save_dir=app.output_dir, wsize=15, tag=log_identifier, total=total)
+            self.__cv_monitor = AndroLogCVMonitor(
+                save_dir=app.output_dir,
+                wsize=15,
+                tag=log_identifier,
+                total=total,
+                udid=self.device.serial,
+            )
             self.__cv_monitor.start_logcat_listener()
 
         elif code_coverage == 'jacoco':

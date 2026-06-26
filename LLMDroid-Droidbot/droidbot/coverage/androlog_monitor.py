@@ -25,7 +25,7 @@ def extract_content(line, prefix):
 class AndroLogCVMonitor(CodeCoverageMonitor):
     # TODO 支持指定udid
     def __init__(self, save_dir: str = '', total=62491, tag: str = "FING_SUPER_LOG",
-                 wsize=20, min_growth_rate=0.05, factor=0.5):
+                 wsize=20, min_growth_rate=0.05, factor=0.5, udid: str = ''):
 
         super().__init__(save_dir=save_dir, wsize=wsize, min_growth_rate=min_growth_rate, factor=factor)
 
@@ -34,16 +34,24 @@ class AndroLogCVMonitor(CodeCoverageMonitor):
         self.rate = 0.0
         self.__total = total
         self.__log_tag = tag
+        self.__udid = udid
         self.summary = {}
         self.visited_components = set()
 
 
         self.logger.info(f"[CodeCoverageMonitor] total methods: {total}, TAG: {tag}")
         try:
-            subprocess.run(["adb", "logcat", "-c"], check=True)
+            subprocess.run(self.__adb_cmd("logcat", "-c"), check=True)
             self.logger.info("[CodeCoverageMonitor] clear adb log cache")
         except subprocess.CalledProcessError as e:
             self.logger.error(e)
+
+    def __adb_cmd(self, *args):
+        cmd = ["adb"]
+        if self.__udid:
+            cmd.extend(["-s", self.__udid])
+        cmd.extend(args)
+        return cmd
 
     def __increment(self, key):
         with threading.Lock():
@@ -76,9 +84,9 @@ class AndroLogCVMonitor(CodeCoverageMonitor):
         def listener():
             while True:
                 try:
-                    subprocess.run(["adb", "logcat", "-c"], check=True)
+                    subprocess.run(self.__adb_cmd("logcat", "-c"), check=True)
                     self.logger.info("[CodeCoverageMonitor] clear adb log cache")
-                    cmd = ["adb", "logcat", "-s", self.__log_tag]
+                    cmd = self.__adb_cmd("logcat", "-s", self.__log_tag)
                     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
                     for line in process.stdout:
                         self.__analyze_line(line)
