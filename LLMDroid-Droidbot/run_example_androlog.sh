@@ -91,8 +91,8 @@ ApkFileName="TimePlanner.apk"
 ApkPath=""
 OutputDir="$ScriptDir/output/androlog/TimePlanner/dfs_greedy"
 Timeout=1800
-Interval=2
-Count=1000
+Interval=3
+Count=100000
 
 while [[ $# -gt 0 ]]; do
     case "$1" in

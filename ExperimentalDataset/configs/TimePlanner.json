@@ -4,7 +4,7 @@
     "ApiKey": "sk-3tcJrBKdScOfInHcE177993bA7B248B1A32c72793208340a",
     "BaseUrl": "https://api.apiyi.com/v1",
     "Model": "gpt-4o",
-    "TotalMethod": 79210,
-    "Tag": "WIKI_WCX_LOG",
+    "TotalMethod": 23280,
+    "Tag": "TIME_PLANNER_SCHEDULE_WCX_LOG",
     "Window": 100
 }
