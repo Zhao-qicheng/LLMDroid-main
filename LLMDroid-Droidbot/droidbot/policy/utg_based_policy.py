@@ -78,7 +78,7 @@ class UtgBasedInputPolicy(InputPolicy):
                     raise Exception("Must specify Tag and TotalMethod in config.json when using androlog!")
             self.__cv_monitor = AndroLogCVMonitor(
                 save_dir=app.output_dir,
-                wsize=15,
+                wsize=10,
                 tag=log_identifier,
                 total=total,
                 udid=self.device.serial,

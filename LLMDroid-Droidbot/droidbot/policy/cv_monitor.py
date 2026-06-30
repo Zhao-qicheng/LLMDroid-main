@@ -22,7 +22,7 @@ def extract_content(line, prefix):
 class CodeCoverageMonitor:
 
     def __init__(self, save_dir: str = '', total=62491, tag: str = "FING_SUPER_LOG",
-                 wsize=15, min_growth_rate=0.05, factor=0.5):
+                 wsize=10, min_growth_rate=0.05, factor=0.5):
 
         self.logger = get_logger()
         self.__file_path = os.path.join(save_dir, 'codecoverage.txt')

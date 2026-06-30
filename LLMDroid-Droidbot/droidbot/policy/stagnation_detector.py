@@ -96,8 +96,8 @@ def should_trigger_guide(
     current_state: DeviceState,
     window: Optional[int] = None,
     eps_state: int = 0,
-    eps_widget: float = 0.05,
-    r_thresh: float = 0.7,
+    eps_widget: float = 0.10,
+    r_thresh: float = 0.5,
 ) -> bool:
     # Code 维：check_low_growth_rate() 会推进覆盖率增长窗口。
     code_stalled = cv_monitor.check_low_growth_rate()
@@ -144,5 +144,5 @@ def should_trigger_guide(
         return True
     # R4: Code 低增长但 UI 仍有有效转移，继续交给 greedy 探索。
     if code_ready and code_stalled and not state_stalled:
-        return False
+        return True
     return False

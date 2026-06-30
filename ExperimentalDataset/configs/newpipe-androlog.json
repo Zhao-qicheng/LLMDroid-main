@@ -1,9 +1,9 @@
 {
     "AppName": "NewPipe",
     "Description": "NewPipe is an open-source app designed to provide an enhanced YouTube experience with a focus on privacy and user control. It allows users to watch videos without ads, listen to audio in the background, and download content for offline viewing. The app also supports various advanced features such as picture-in-picture mode, video and audio search, and extensive customization options.",
-    "ApiKey": "sk-a8fcc94497e94f999fadded6477fc9a4",
-    "BaseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    "Model": "glm-5.1",
+    "ApiKey": "sk-3tcJrBKdScOfInHcE177993bA7B248B1A32c72793208340a",
+    "BaseUrl": "https://api.apiyi.com/v1",
+    "Model": "gpt-4o",
     "TotalMethod": 75480,
     "Tag": "PIPE_SUPER_LOG",
     "Window": 100
