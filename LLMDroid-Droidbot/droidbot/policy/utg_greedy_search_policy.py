@@ -1,8 +1,4 @@
-# 文件作用：
-# 1. 实现 DroidBot 原有的 UTG 贪心探索策略，在当前页优先执行未探索事件。
-# 2. 当前页无新事件时，沿 UTG 导航到仍有未探索动作的已知页面。
-# 3. 在 LLMDroid 中作为 EXPLORE 阶段的默认高速探索策略。
-import re
+﻿# 鏂囦欢浣滅敤锛?# 1. 瀹炵幇 DroidBot 鍘熸湁鐨?UTG 璐績鎺㈢储绛栫暐锛屽湪褰撳墠椤典紭鍏堟墽琛屾湭鎺㈢储浜嬩欢銆?# 2. 褰撳墠椤垫棤鏂颁簨浠舵椂锛屾部 UTG 瀵艰埅鍒颁粛鏈夋湭鎺㈢储鍔ㄤ綔鐨勫凡鐭ラ〉闈€?# 3. 鍦?LLMDroid 涓綔涓?EXPLORE 闃舵鐨勯粯璁ら珮閫熸帰绱㈢瓥鐣ャ€?import re
 
 from .input_policy import *
 from .utg_based_policy import UtgBasedInputPolicy
@@ -14,9 +10,7 @@ class UtgGreedySearchPolicy(UtgBasedInputPolicy):
     """
     DFS/BFS (according to search_method) strategy to explore UFG (new)
 
-    中文说明：这是 DroidBot 原有的贪心探索策略。LLMDroid 在 EXPLORE 模式下
-    仍然调用这里选择动作，只有覆盖率/时间触发后才切到 LLM Guidance。
-    """
+    涓枃璇存槑锛氳繖鏄?DroidBot 鍘熸湁鐨勮椽蹇冩帰绱㈢瓥鐣ャ€侺LMDroid 鍦?EXPLORE 妯″紡涓?    浠嶇劧璋冪敤杩欓噷閫夋嫨鍔ㄤ綔锛屽彧鏈夎鐩栫巼/鏃堕棿瑙﹀彂鍚庢墠鍒囧埌 LLM Guidance銆?    """
 
     def __init__(self, device, app, random_input, search_method, code_coverage, external_driver=False):
         super(UtgGreedySearchPolicy, self).__init__(device, app, random_input, code_coverage=code_coverage,
@@ -41,8 +35,7 @@ class UtgGreedySearchPolicy(UtgBasedInputPolicy):
         generate an event based on current UTG
         @return: InputEvent
         """
-        # 该函数只负责“自主探索阶段”的动作选择；LLM 导航和目标功能测试由父类状态机接管。
-        current_state = self.current_state
+        # 璇ュ嚱鏁板彧璐熻矗鈥滆嚜涓绘帰绱㈤樁娈碘€濈殑鍔ㄤ綔閫夋嫨锛汱LM 瀵艰埅鍜岀洰鏍囧姛鑳芥祴璇曠敱鐖剁被鐘舵€佹満鎺ョ銆?        current_state = self.current_state
         self.logger.info("Current state: %s" % current_state.state_str)
         if current_state.state_str in self.__missed_states:
             self.__missed_states.remove(current_state.state_str)
@@ -98,8 +91,7 @@ class UtgGreedySearchPolicy(UtgBasedInputPolicy):
             self.__num_steps_outside = 0
 
         # Get all possible input events
-        # 候选事件来自 DeviceState.get_possible_input()，包括点击、输入、滚动等原子动作。
-        possible_events = current_state.get_possible_input()
+        # 鍊欓€変簨浠舵潵鑷?DeviceState.get_possible_input()锛屽寘鎷偣鍑汇€佽緭鍏ャ€佹粴鍔ㄧ瓑鍘熷瓙鍔ㄤ綔銆?        possible_events = current_state.get_possible_input()
 
         if self.random_input:
             random.shuffle(possible_events)
@@ -117,8 +109,7 @@ class UtgGreedySearchPolicy(UtgBasedInputPolicy):
         possible_events = self.__defer_navigation_events(possible_events)
 
         # If there is an unexplored event, try the event first
-        # 贪心策略优先执行当前页还没试过的事件，这是 DroidBot 广度覆盖能力的核心。
-        for input_event in possible_events:
+        # 璐績绛栫暐浼樺厛鎵ц褰撳墠椤佃繕娌¤瘯杩囩殑浜嬩欢锛岃繖鏄?DroidBot 骞垮害瑕嗙洊鑳藉姏鐨勬牳蹇冦€?        for input_event in possible_events:
             if not self.utg.is_event_explored(event=input_event, state=current_state):
                 self.logger.info("Trying an unexplored event.")
                 self.__event_trace += EVENT_FLAG_EXPLORE
@@ -126,8 +117,7 @@ class UtgGreedySearchPolicy(UtgBasedInputPolicy):
 
         target_state = self.__get_nav_target(current_state)
         if target_state:
-            # 当前页无新事件时，尝试沿 UTG 导航到仍有未探索事件的已知页面。
-            navigation_steps = self.utg.get_navigation_steps(from_state=current_state, to_state=target_state)
+            # 褰撳墠椤垫棤鏂颁簨浠舵椂锛屽皾璇曟部 UTG 瀵艰埅鍒颁粛鏈夋湭鎺㈢储浜嬩欢鐨勫凡鐭ラ〉闈€?            navigation_steps = self.utg.get_navigation_steps(from_state=current_state, to_state=target_state)
             if navigation_steps and len(navigation_steps) > 0:
                 self.logger.info("Navigating to %s, %d steps left." % (target_state.state_str, len(navigation_steps)))
                 self.__event_trace += EVENT_FLAG_NAVIGATE
@@ -140,6 +130,11 @@ class UtgGreedySearchPolicy(UtgBasedInputPolicy):
 
         if self.external_driver:
             self.logger.info("External driver mode: no exploration target, sending BACK instead of stopping app.")
+            self.__event_trace += EVENT_FLAG_NAVIGATE
+            return KeyEvent(name="BACK")
+
+        if self.search_method == POLICY_GREEDY_DFS:
+            self.logger.info("Greedy DFS cannot find a better exploration target, trying BACK as the last resort.")
             self.__event_trace += EVENT_FLAG_NAVIGATE
             return KeyEvent(name="BACK")
 
@@ -215,9 +210,73 @@ class UtgGreedySearchPolicy(UtgBasedInputPolicy):
                 return str(value).strip().lower()
         return ""
 
+    def __defer_navigation_events(self, possible_events):
+        normal_events = []
+        navigation_events = []
+        back_events = []
+
+        for input_event in possible_events:
+            if isinstance(input_event, KeyEvent) and getattr(input_event, "name", None) == "BACK":
+                back_events.append(input_event)
+            elif self.__is_navigation_touch_event(input_event):
+                navigation_events.append(input_event)
+            else:
+                normal_events.append(input_event)
+
+        if navigation_events:
+            self.logger.debug("Deferred %d navigation-like UI events.", len(navigation_events))
+
+        if self.search_method == POLICY_GREEDY_BFS:
+            return back_events + normal_events + navigation_events
+        return normal_events + navigation_events + back_events
+
+    def __is_navigation_touch_event(self, input_event):
+        if not isinstance(input_event, TouchEvent):
+            return False
+
+        view = getattr(input_event, "view", None)
+        if not view:
+            return False
+
+        text = self.__normalize_view_value(view, "text")
+        content_desc = self.__normalize_view_value(view, "content_description", "content-desc")
+        resource_id = self.__normalize_view_value(view, "resource_id")
+
+        labels = {text, content_desc}
+        navigation_labels = {
+            "navigate up", "back", "go back", "close", "dismiss", "cancel",
+            "previous", "up", "返回", "关闭", "取消",
+        }
+        if labels.intersection(navigation_labels):
+            return True
+
+        resource_name = resource_id.split("/")[-1]
+        compact_resource_name = re.sub(r"[^a-z0-9]", "", resource_name)
+        navigation_resource_names = {
+            "back", "backbutton", "buttonback", "toolbarback", "navigateup",
+            "navup", "upbutton", "close", "closebutton", "buttonclose",
+            "dismiss", "dismissbutton",
+        }
+        if compact_resource_name in navigation_resource_names:
+            return True
+
+        resource_tokens = set(filter(None, re.split(r"[^a-z0-9]+", resource_name)))
+        if resource_tokens.intersection({"back", "close", "dismiss"}):
+            return True
+        if "navigate" in resource_tokens and "up" in resource_tokens:
+            return True
+
+        return False
+
+    @staticmethod
+    def __normalize_view_value(view, *keys):
+        for key in keys:
+            value = view.get(key)
+            if value is not None:
+                return str(value).strip().lower()
+        return ""
     def __sort_inputs_by_humanoid(self, possible_events):
-        # Humanoid 可对候选事件重新排序；LLMDroid-Droidbot 不依赖它，但保留兼容入口。
-        if sys.version.startswith("3"):
+        # Humanoid 鍙鍊欓€変簨浠堕噸鏂版帓搴忥紱LLMDroid-Droidbot 涓嶄緷璧栧畠锛屼絾淇濈暀鍏煎鍏ュ彛銆?        if sys.version.startswith("3"):
             from xmlrpc.client import ServerProxy
         else:
             from xmlrpclib import ServerProxy
@@ -246,8 +305,7 @@ class UtgGreedySearchPolicy(UtgBasedInputPolicy):
         return new_events
 
     def __get_nav_target(self, current_state):
-        # 在已到达状态中寻找“还没有完全探索”的页面作为自主探索导航目标。
-        # If last event is a navigation event
+        # 鍦ㄥ凡鍒拌揪鐘舵€佷腑瀵绘壘鈥滆繕娌℃湁瀹屽叏鎺㈢储鈥濈殑椤甸潰浣滀负鑷富鎺㈢储瀵艰埅鐩爣銆?        # If last event is a navigation event
         if self.__nav_target and self.__event_trace.endswith(EVENT_FLAG_NAVIGATE):
             navigation_steps = self.utg.get_navigation_steps(from_state=current_state, to_state=self.__nav_target)
             if navigation_steps and 0 < len(navigation_steps) <= self.__nav_num_steps:
@@ -281,3 +339,4 @@ class UtgGreedySearchPolicy(UtgBasedInputPolicy):
         self.__nav_target = None
         self.__nav_num_steps = -1
         return None
+

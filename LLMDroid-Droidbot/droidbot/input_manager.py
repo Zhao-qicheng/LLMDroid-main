@@ -1,8 +1,4 @@
-# 文件作用：
-# 1. 作为 DroidBot/LLMDroid 的事件调度器，根据 policy_name 创建具体输入策略。
-# 2. 统一管理事件发送、事件间隔、事件日志、method profiling 和 Monkey/manual/replay 分支。
-# 3. 在 LLMDroid-Droidbot 中，它负责把策略层生成的 InputEvent 包装为 EventLog 并下发到设备。
-import subprocess
+﻿# 鏂囦欢浣滅敤锛?# 1. 浣滀负 DroidBot/LLMDroid 鐨勪簨浠惰皟搴﹀櫒锛屾牴鎹?policy_name 鍒涘缓鍏蜂綋杈撳叆绛栫暐銆?# 2. 缁熶竴绠＄悊浜嬩欢鍙戦€併€佷簨浠堕棿闅斻€佷簨浠舵棩蹇椼€乵ethod profiling 鍜?Monkey/manual/replay 鍒嗘敮銆?# 3. 鍦?LLMDroid-Droidbot 涓紝瀹冭礋璐ｆ妸绛栫暐灞傜敓鎴愮殑 InputEvent 鍖呰涓?EventLog 骞朵笅鍙戝埌璁惧銆?import subprocess
 import time
 from typing import Literal
 
@@ -32,9 +28,7 @@ class InputManager(object):
     """
     This class manages all events to send during app running
 
-    中文说明：InputManager 是“事件调度层”。它不直接决定点哪个控件，
-    而是根据 policy_name 创建具体策略，再把策略生成的事件包装成 EventLog 后发送到设备。
-    """
+    涓枃璇存槑锛欼nputManager 鏄€滀簨浠惰皟搴﹀眰鈥濄€傚畠涓嶇洿鎺ュ喅瀹氱偣鍝釜鎺т欢锛?    鑰屾槸鏍规嵁 policy_name 鍒涘缓鍏蜂綋绛栫暐锛屽啀鎶婄瓥鐣ョ敓鎴愮殑浜嬩欢鍖呰鎴?EventLog 鍚庡彂閫佸埌璁惧銆?    """
 
     def __init__(self, device, app, policy_name, random_input,
                  event_count, event_interval,
@@ -68,8 +62,7 @@ class InputManager(object):
         self.monkey = None
 
         if script_path is not None:
-            # script 用于在特定页面强制执行预定义动作，优先级高于普通探索策略。
-            f = open(script_path, 'r')
+            # script 鐢ㄤ簬鍦ㄧ壒瀹氶〉闈㈠己鍒舵墽琛岄瀹氫箟鍔ㄤ綔锛屼紭鍏堢骇楂樹簬鏅€氭帰绱㈢瓥鐣ャ€?            f = open(script_path, 'r')
             script_dict = json.load(f)
             from .input_script import DroidBotScript
             self.script = DroidBotScript(script_dict)
@@ -78,9 +71,8 @@ class InputManager(object):
         self.profiling_method = profiling_method
 
     def get_input_policy(self, device, app, master, code_coverage):
-        # policy_name 决定真正的事件生成器。LLMDroid 的核心逻辑挂在 UTG-based 策略上，
-        # 即 naive/greedy/manual 等继承或复用 UtgBasedInputPolicy 的策略。
-        if self.policy_name == POLICY_NONE:
+        # policy_name 鍐冲畾鐪熸鐨勪簨浠剁敓鎴愬櫒銆侺LMDroid 鐨勬牳蹇冮€昏緫鎸傚湪 UTG-based 绛栫暐涓婏紝
+        # 鍗?naive/greedy/manual 绛夌户鎵挎垨澶嶇敤 UtgBasedInputPolicy 鐨勭瓥鐣ャ€?        if self.policy_name == POLICY_NONE:
             input_policy = None
         elif self.policy_name == POLICY_MONKEY:
             input_policy = None
@@ -105,8 +97,7 @@ class InputManager(object):
             self.logger.warning("No valid input policy specified. Using policy \"none\".")
             input_policy = None
         if isinstance(input_policy, UtgBasedInputPolicy):
-            # UTG-based 策略需要知道脚本和分布式 master，后续生成事件时会读取这些上下文。
-            input_policy.script = self.script
+            # UTG-based 绛栫暐闇€瑕佺煡閬撹剼鏈拰鍒嗗竷寮?master锛屽悗缁敓鎴愪簨浠舵椂浼氳鍙栬繖浜涗笂涓嬫枃銆?            input_policy.script = self.script
             input_policy.master = master
         return input_policy
 
@@ -120,9 +111,7 @@ class InputManager(object):
             return
         self.events.append(event)
 
-        # EventLog 负责发送事件前后的状态保存、日志记录和可选 method profiling。
-        # 因此这里不是直接 event.send(device)，而是交给 EventLog.start()/stop() 包装执行。
-        event_log = EventLog(self.device, self.app, event, self.profiling_method)
+        # EventLog 璐熻矗鍙戦€佷簨浠跺墠鍚庣殑鐘舵€佷繚瀛樸€佹棩蹇楄褰曞拰鍙€?method profiling銆?        # 鍥犳杩欓噷涓嶆槸鐩存帴 event.send(device)锛岃€屾槸浜ょ粰 EventLog.start()/stop() 鍖呰鎵ц銆?        event_log = EventLog(self.device, self.app, event, self.profiling_method)
         event_log.start()
         while True:
             time.sleep(self.event_interval)
@@ -138,18 +127,15 @@ class InputManager(object):
 
         try:
             if self.policy is not None:
-                # 大多数 LLMDroid/DroidBot 策略会进入这里，由 policy.start() 循环生成事件。
-                self.policy.start(self)
+                # 澶у鏁?LLMDroid/DroidBot 绛栫暐浼氳繘鍏ヨ繖閲岋紝鐢?policy.start() 寰幆鐢熸垚浜嬩欢銆?                self.policy.start(self)
             elif self.policy_name == POLICY_NONE:
-                # none 模式只启动 App，不自动发送事件，适合人工调试当前页面状态。
-                self.device.start_app(self.app)
+                # none 妯″紡鍙惎鍔?App锛屼笉鑷姩鍙戦€佷簨浠讹紝閫傚悎浜哄伐璋冭瘯褰撳墠椤甸潰鐘舵€併€?                self.device.start_app(self.app)
                 if self.event_count == 0:
                     return
                 while self.enabled:
                     time.sleep(1)
             elif self.policy_name == POLICY_MONKEY:
-                # monkey 模式绕过 DroidBot 的 UTG/LLM 逻辑，直接调用 Android 系统 monkey。
-                throttle = self.event_interval * 1000
+                # monkey 妯″紡缁曡繃 DroidBot 鐨?UTG/LLM 閫昏緫锛岀洿鎺ヨ皟鐢?Android 绯荤粺 monkey銆?                throttle = self.event_interval * 1000
                 monkey_cmd = "adb -s %s shell monkey %s --ignore-crashes --ignore-security-exceptions" \
                              " --throttle %d -v %d" % \
                              (self.device.serial,
@@ -171,8 +157,7 @@ class InputManager(object):
                 if self.monkey is not None:
                     self.monkey.wait()
             elif self.policy_name == POLICY_MANUAL:
-                # manual 模式由用户手动操作设备，每次回车保存当前页面状态，便于构造样本。
-                self.device.start_app(self.app)
+                # manual 妯″紡鐢辩敤鎴锋墜鍔ㄦ搷浣滆澶囷紝姣忔鍥炶溅淇濆瓨褰撳墠椤甸潰鐘舵€侊紝渚夸簬鏋勯€犳牱鏈€?                self.device.start_app(self.app)
                 while self.enabled:
                     keyboard_input = input("press ENTER to save current state, type q to exit...")
                     if keyboard_input.startswith('q'):
@@ -191,8 +176,7 @@ class InputManager(object):
         stop sending event
         """
         if self.policy and isinstance(self.policy, UtgBasedInputPolicy):
-            # 退出前输出 StateCluster/函数分析结果，便于复盘 LLM 对页面的理解。
-            self.policy.debug_states()
+            # 閫€鍑哄墠杈撳嚭 StateCluster/鍑芥暟鍒嗘瀽缁撴灉锛屼究浜庡鐩?LLM 瀵归〉闈㈢殑鐞嗚В銆?            self.policy.debug_states()
 
         if self.monkey:
             if self.monkey.returncode is None:
@@ -202,3 +186,4 @@ class InputManager(object):
             if pid is not None:
                 self.device.adb.shell("kill -9 %d" % pid)
         self.enabled = False
+
