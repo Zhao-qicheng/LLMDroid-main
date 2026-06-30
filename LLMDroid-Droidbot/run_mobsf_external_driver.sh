@@ -14,7 +14,7 @@ Options:
   -DeviceSerial, --DeviceSerial, --device-serial VALUE
       Android device serial. Default: 10.30.58.20:6555
   -Python, --Python, --python VALUE
-      Python executable. Default: \${PYTHON:-python3}
+      Python executable. Default: \$PYTHON, then active conda python, then python/python3
   -ApkPath, --ApkPath, --apk-path VALUE
       Explicit APK path. If omitted, the first APK in ../input_apk is used.
   -OutputDir, --OutputDir, --output-dir VALUE
@@ -62,10 +62,33 @@ check_command() {
     fi
 }
 
+default_python() {
+    if [[ -n "${PYTHON:-}" ]]; then
+        printf '%s\n' "$PYTHON"
+    elif [[ -n "${CONDA_PREFIX:-}" && -x "$CONDA_PREFIX/bin/python" ]]; then
+        printf '%s\n' "$CONDA_PREFIX/bin/python"
+    elif command -v python >/dev/null 2>&1; then
+        printf '%s\n' python
+    else
+        printf '%s\n' python3
+    fi
+}
+
+check_python_dependency() {
+    local module_name="$1"
+    local install_hint="$2"
+    "$Python" - "$module_name" <<'PY' >/dev/null 2>&1 || die "Missing Python module '$module_name' in $("$Python" -c 'import sys; print(sys.executable)'). Install it with: $install_hint"
+import importlib.util
+import sys
+
+sys.exit(0 if importlib.util.find_spec(sys.argv[1]) else 1)
+PY
+}
+
 ScriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 
 DeviceSerial="10.30.58.20:6555"
-Python="${PYTHON:-python3}"
+Python="$(default_python)"
 ApkPath=""
 OutputDir="output-mobsf-external"
 Policy="dfs_greedy"
@@ -176,6 +199,7 @@ case "$CodeCoverage" in
 esac
 
 check_command "$Python"
+check_python_dependency "pkg_resources" "conda install setuptools  # or: pip install setuptools"
 check_command adb
 
 cd "$ScriptDir"
@@ -202,6 +226,7 @@ ResolvedApkPath="$(resolve_file_path "$ResolvedApkPath")"
 
 echo "[MobSF External Driver] Start MobSF dynamic analysis first, then keep the target app/emulator running."
 echo "[MobSF External Driver] Using APK: $ResolvedApkPath"
+echo "[MobSF External Driver] Python: $("$Python" -c 'import sys; print(sys.executable)')"
 echo "[MobSF External Driver] adb connect $DeviceSerial"
 adb connect "$DeviceSerial"
 

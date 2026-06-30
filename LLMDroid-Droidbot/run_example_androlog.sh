@@ -12,9 +12,9 @@ Usage: $(basename "$0") [options]
 
 Options:
   -DeviceSerial, --DeviceSerial, --device-serial VALUE
-      Android device serial. Default: emulator-5554
+      Android device serial. Default: 10.30.58.20:6555
   -Python, --Python, --python VALUE
-      Python executable. Default: \${PYTHON:-python3}
+      Python executable. Default: \$PYTHON, then active conda python, then python/python3
   -ApkFileName, --ApkFileName, --apk-file-name VALUE
       APK file name under the default dataset directory. Default: WishShop.apk
   -ApkPath, --ApkPath, --apk-path VALUE
@@ -60,10 +60,33 @@ check_command() {
     fi
 }
 
+default_python() {
+    if [[ -n "${PYTHON:-}" ]]; then
+        printf '%s\n' "$PYTHON"
+    elif [[ -n "${CONDA_PREFIX:-}" && -x "$CONDA_PREFIX/bin/python" ]]; then
+        printf '%s\n' "$CONDA_PREFIX/bin/python"
+    elif command -v python >/dev/null 2>&1; then
+        printf '%s\n' python
+    else
+        printf '%s\n' python3
+    fi
+}
+
+check_python_dependency() {
+    local module_name="$1"
+    local install_hint="$2"
+    "$Python" - "$module_name" <<'PY' >/dev/null 2>&1 || die "Missing Python module '$module_name' in $("$Python" -c 'import sys; print(sys.executable)'). Install it with: $install_hint"
+import importlib.util
+import sys
+
+sys.exit(0 if importlib.util.find_spec(sys.argv[1]) else 1)
+PY
+}
+
 ScriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 
-DeviceSerial="emulator-5554"
-Python="${PYTHON:-python3}"
+DeviceSerial="10.30.58.20:6555"
+Python="$(default_python)"
 ApkFileName="WishShop.apk"
 ApkPath=""
 OutputDir="$ScriptDir/output/androlog/WishShop/dfs_greedy"
@@ -156,6 +179,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 check_command "$Python"
+check_python_dependency "pkg_resources" "conda install setuptools  # or: pip install setuptools"
 
 ProjectRoot="$(cd "$ScriptDir/.." && pwd -P)"
 DatasetApkDir="$ProjectRoot/ExperimentalDataset/apk-after-instrumentation/FSE-dataset-wcx-log"
@@ -191,6 +215,8 @@ fi
 
 echo "[LLMDroid Androlog Mode] Using APK: $ResolvedApkPath"
 echo "[LLMDroid Androlog Mode] Output dir: $OutputDir"
+echo "[LLMDroid Androlog Mode] Device serial: $DeviceSerial"
+echo "[LLMDroid Androlog Mode] Python: $("$Python" -c 'import sys; print(sys.executable)')"
 
 cd "$ScriptDir"
 "$Python" "$ScriptDir/start.py" \
