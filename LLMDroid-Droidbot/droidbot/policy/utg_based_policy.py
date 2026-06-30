@@ -19,6 +19,7 @@ from ..desc.utg import UTG, Path
 from ..desc.device_state import DeviceState
 from ..desc.state_cluster import StateCluster
 from .llm_agent import QuestionMode, QuestionPayload, LLMAgent
+from .stagnation_detector import should_trigger_guide
 from ..coverage.base_monitor import CodeCoverageMonitor
 from ..coverage.androlog_monitor import AndroLogCVMonitor
 from ..coverage.jacoco_monitor import JacocoCVMonitor
@@ -122,6 +123,7 @@ class UtgBasedInputPolicy(InputPolicy):
         self.__successful_guide_times = 0
         self.__GUIDANCE_INTERVAL = 240  # seconds
         self.__next_stage_time = time.time() + self.__GUIDANCE_INTERVAL
+        self.__stagnation_retry_time = 0.0
 
         self.__future: Future
         self.__reset_future()
@@ -245,20 +247,28 @@ class UtgBasedInputPolicy(InputPolicy):
 
     def __check_should_wait(self) -> bool:
         # 返回 True 表示自主探索收益变低，需要等待 LLM 完成已有页面摘要并进入 Guidance。
-        low_growth_rate = False
         if self.__use_coverage:
-            low_growth_rate = self.__cv_monitor.check_low_growth_rate()
+            if time.time() < self.__stagnation_retry_time:
+                self.logger.info(f"About {self.__stagnation_retry_time - time.time()}s left")
+                should_wait = False
+            else:
+                should_wait = should_trigger_guide(
+                    utg=self.utg,
+                    cv_monitor=self.__cv_monitor,
+                    current_state=self.current_state,
+                )
         else:
             # by time
             # time 模式用于未插桩 APK 或调试场景，没有真实覆盖率，只按时间触发。
             if time.time() > self.__next_stage_time:
-                low_growth_rate = True
+                should_wait = True
             else:
                 self.logger.info(f"About {self.__next_stage_time - time.time()}s left")
-        if low_growth_rate:
-            self.logger.info("Low growth rate detected!")
+                should_wait = False
+        if should_wait:
+            self.logger.info("Exploration stagnation detected!")
         # return False
-        return low_growth_rate
+        return should_wait
 
     def __guide_check(self):
         # NAVIGATE 阶段每一步都检查是否按计划到达目标状态；
@@ -342,7 +352,9 @@ class UtgBasedInputPolicy(InputPolicy):
                     )
                     if self.__cv_monitor:
                         self.__cv_monitor.clear()
-                    self.__next_stage_time = time.time() + min(30, self.__GUIDANCE_INTERVAL)
+                    retry_interval = min(30, self.__GUIDANCE_INTERVAL)
+                    self.__next_stage_time = time.time() + retry_interval
+                    self.__stagnation_retry_time = time.time() + retry_interval
                     return
                 if not overview_done:
                     self.logger.warning("Overview wait timed out; enter Guidance with currently completed clusters")

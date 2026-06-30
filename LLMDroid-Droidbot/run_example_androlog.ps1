@@ -1,5 +1,6 @@
 param(
     [string]$DeviceSerial = '10.30.58.20:6555',
+    # [string]$DeviceSerial = 'emulator-5554',
     [string]$Adb = "adb",
     [string]$Python = "D:\DesignSoftware\Python\python.exe",
     [string]$ApkFileName = "Wikipedia.apk",
@@ -55,7 +56,7 @@ Write-Host "[LLMDroid Time Mode] Output dir: $OutputDir"
     -timeout $Timeout `
     -interval $Interval `
     -count $Count `
-    -policy manual `
+    -policy dfs_greedy `
     -grant_perm `
     -keep_app `
     -code_coverage androlog

@@ -90,6 +90,19 @@ class CodeCoverageMonitor(metaclass=ABCMeta):
         else:
             return False
 
+    def growth_window_ready(self) -> bool:
+        # 覆盖率增长窗口满后，调用方才可以解释 code_stalled/code_active 语义。
+        return len(self.__gr_to_check) == self.__WINDOW_SIZE
+
+    def recent_gr(self) -> float:
+        if not self.__gr_to_check:
+            return 0.0
+        return self.__gr_to_check[-1]
+
+    @property
+    def window_size(self) -> int:
+        return self.__WINDOW_SIZE
+
     def _save_to_file(self, content: str):
         try:
             with open(self.__file_path, 'a') as file:
