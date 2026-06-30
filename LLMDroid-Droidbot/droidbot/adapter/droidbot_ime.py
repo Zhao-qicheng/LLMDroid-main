@@ -53,13 +53,24 @@ class DroidBotIme(Adapter):
         self.device.uninstall_app(DROIDBOT_APP_PACKAGE)
 
     def connect(self):
-        r_enable = self.device.adb.shell("ime enable %s" % IME_SERVICE)
-        if "now enabled" in r_enable or "already enabled" in r_enable:
+        try:
+            r_enable = self.device.adb.shell("ime enable %s" % IME_SERVICE)
             r_set = self.device.adb.shell("ime set %s" % IME_SERVICE)
-            if f"{IME_SERVICE} selected" in r_set:
-                self.connected = True
-                return
-        self.logger.warning("Failed to connect DroidBotIME!")
+            current_ime = self.device.adb.shell("settings get secure default_input_method").strip()
+        except Exception as e:
+            self.logger.warning("Failed to connect DroidBotIME: %s", e)
+            return
+
+        if current_ime == IME_SERVICE:
+            self.connected = True
+            return
+
+        self.logger.warning(
+            "Failed to connect DroidBotIME! enable=%r set=%r current_ime=%r",
+            r_enable,
+            r_set,
+            current_ime,
+        )
 
     def check_connectivity(self):
         """
@@ -74,7 +85,7 @@ class DroidBotIme(Adapter):
         """
         self.connected = False
         r_disable = self.device.adb.shell("ime disable %s" % IME_SERVICE)
-        if "now disabled" in r_disable:
+        if "now disabled" in r_disable or "already disabled" in r_disable:
             self.connected = False
             print("[CONNECTION] %s is disconnected" % self.__class__.__name__)
             return
