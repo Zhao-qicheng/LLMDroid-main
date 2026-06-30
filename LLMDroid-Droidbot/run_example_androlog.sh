@@ -179,7 +179,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 check_command "$Python"
-check_python_dependency "pkg_resources" "conda install setuptools  # or: pip install setuptools"
+check_python_dependency "pkg_resources" "python -m pip install 'setuptools<81'"
+check_command adb
 
 ProjectRoot="$(cd "$ScriptDir/.." && pwd -P)"
 DatasetApkDir="$ProjectRoot/ExperimentalDataset/apk-after-instrumentation/FSE-dataset-wcx-log"
@@ -217,6 +218,12 @@ echo "[LLMDroid Androlog Mode] Using APK: $ResolvedApkPath"
 echo "[LLMDroid Androlog Mode] Output dir: $OutputDir"
 echo "[LLMDroid Androlog Mode] Device serial: $DeviceSerial"
 echo "[LLMDroid Androlog Mode] Python: $("$Python" -c 'import sys; print(sys.executable)')"
+echo "[LLMDroid Androlog Mode] adb: $(command -v adb)"
+
+if [[ "$DeviceSerial" == *:* ]]; then
+    echo "[LLMDroid Androlog Mode] adb connect $DeviceSerial"
+    adb connect "$DeviceSerial"
+fi
 
 cd "$ScriptDir"
 "$Python" "$ScriptDir/start.py" \

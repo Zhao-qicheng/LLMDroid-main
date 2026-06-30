@@ -1,4 +1,5 @@
 openai
+setuptools<81
 androguard>=3.4.0a1
 networkx
 Pillow

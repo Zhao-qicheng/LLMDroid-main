@@ -199,7 +199,7 @@ case "$CodeCoverage" in
 esac
 
 check_command "$Python"
-check_python_dependency "pkg_resources" "conda install setuptools  # or: pip install setuptools"
+check_python_dependency "pkg_resources" "python -m pip install 'setuptools<81'"
 check_command adb
 
 cd "$ScriptDir"
