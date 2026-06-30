@@ -858,17 +858,31 @@ class Device(object):
         self.adb.drag(start_xy, end_xy, duration)
 
     def view_append_text(self, text):
-        if self.droidbot_ime.connected:
-            self.droidbot_ime.input_text(text=text, mode=1)
-        else:
-            self.adb.type(text)
+        try:
+            if self.droidbot_ime.connected:
+                self.droidbot_ime.input_text(text=text, mode=1)
+            else:
+                self.adb.type(text)
+        except subprocess.CalledProcessError as e:
+            self.logger.warning(
+                "Failed to append text %r via device input, skip this text event: %s",
+                text,
+                e,
+            )
 
     def view_set_text(self, text):
-        if self.droidbot_ime.connected:
-            self.droidbot_ime.input_text(text=text, mode=0)
-        else:
-            self.logger.warning("`adb shell input text` doesn't support setting text, appending instead.")
-            self.adb.type(text)
+        try:
+            if self.droidbot_ime.connected:
+                self.droidbot_ime.input_text(text=text, mode=0)
+            else:
+                self.logger.warning("`adb shell input text` doesn't support setting text, appending instead.")
+                self.adb.type(text)
+        except subprocess.CalledProcessError as e:
+            self.logger.warning(
+                "Failed to set text %r via device input, skip this text event: %s",
+                text,
+                e,
+            )
 
     def key_press(self, key_code):
         self.adb.press(key_code)
