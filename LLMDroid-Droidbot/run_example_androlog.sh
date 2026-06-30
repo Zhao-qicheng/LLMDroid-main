@@ -87,9 +87,9 @@ ScriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 
 DeviceSerial="192.168.100.99:6555"
 Python="$(default_python)"
-ApkFileName="WishShop.apk"
+ApkFileName="TimePlanner.apk"
 ApkPath=""
-OutputDir="$ScriptDir/output/androlog/WishShop/dfs_greedy"
+OutputDir="$ScriptDir/output/androlog/TimePlanner/dfs_greedy"
 Timeout=1800
 Interval=2
 Count=1000
