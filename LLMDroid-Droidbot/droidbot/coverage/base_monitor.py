@@ -42,7 +42,7 @@ class CodeCoverageMonitor(metaclass=ABCMeta):
         self.__gr_to_check: list[float] = []
 
     @abstractmethod
-    def _get_code_coverage(self) -> float:
+    def _get_code_coverage(self, mode: str = None) -> float:
         pass
 
     def __update(self, current_cv: float):
@@ -71,9 +71,9 @@ class CodeCoverageMonitor(metaclass=ABCMeta):
             self.__adjusted_threshold = max(adjusted, self.__MIN_THRESHOLD)
             self.logger.info(f"[CV_Monitor] G:{baseline:8.5f}, delta_g:{delta_g:8.5f}, adjusted_threshold:{self.__adjusted_threshold:8.5f}")
 
-    def update_code_coverage(self):
+    def update_code_coverage(self, mode: str = None):
         # 子类负责获取当前覆盖率，本基类只缓存结果。
-        self.__current_coverage = self._get_code_coverage()
+        self.__current_coverage = self._get_code_coverage(mode=mode)
 
     def check_low_growth_rate(self) -> bool:
         # update current code coverage and adjust threshold

@@ -50,7 +50,7 @@ class JacocoCVMonitor(CodeCoverageMonitor):
         subprocess.run(command, check=True)
         time.sleep(0.3)
 
-    def _get_code_coverage(self) -> float:
+    def _get_code_coverage(self, mode: str = None) -> float:
 
         # self.__send_broadcast()
         # 定义线程事件用于同步
@@ -87,6 +87,9 @@ class JacocoCVMonitor(CodeCoverageMonitor):
             finally:
                 event.set()  # notify main thread to update coverage
 
+        with self.__coverage_lock:
+            previous_coverage = self.__last_coverage
+
         # 启动子线程
         thread = threading.Thread(target=thread_function)
         thread.start()
@@ -103,7 +106,8 @@ class JacocoCVMonitor(CodeCoverageMonitor):
             with self.__coverage_lock:
                 coverage = self.__last_coverage
 
-        self._save_to_file(f"{coverage:.5f}%")
+        suffix = f" mode={mode}" if mode and coverage > previous_coverage else ""
+        self._save_to_file(f"{coverage:.5f}%{suffix}")
         return coverage
 
     def __del__(self):

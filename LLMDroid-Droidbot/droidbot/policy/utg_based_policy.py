@@ -339,7 +339,10 @@ class UtgBasedInputPolicy(InputPolicy):
         # 这是 LLMDroid 两阶段逻辑的核心：探索 -> 等待 LLM -> 导航 -> 测试功能 -> 回到探索。
         # update code coverage every step
         if self.__cv_monitor is not None:
-            self.__cv_monitor.update_code_coverage()
+            coverage_mode = None
+            if self.__current_mode != Mode.EXPLORE:
+                coverage_mode = self.__current_mode.name
+            self.__cv_monitor.update_code_coverage(mode=coverage_mode)
 
         if self.__current_mode == Mode.EXPLORE:
             # EXPLORE 阶段保留原 DroidBot 策略；只有覆盖率/时间触发后才切换到 LLM Guidance。

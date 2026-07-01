@@ -101,7 +101,7 @@ class AndroLogCVMonitor(CodeCoverageMonitor):
         thread.setDaemon(True)
         thread.start()
 
-    def _get_code_coverage(self) -> float:
+    def _get_code_coverage(self, mode: str = None) -> float:
         """
         compute current code coverage and growth rate
         save result to file
@@ -109,12 +109,15 @@ class AndroLogCVMonitor(CodeCoverageMonitor):
         """
         with threading.Lock():
             current_method_count = self.method_count
+            previous_method_count = self.last_method_count
             # code coverage growth rate
             self.rate = ((current_method_count - self.last_method_count) / self.last_method_count)
             # code coverage percentage
             percentage: float = (current_method_count / self.__total) * 100
             self.last_method_count = current_method_count
         str_ = f"[{self.__log_tag}] {percentage:8.5f}% ({current_method_count}/{self.__total}) --> {self.rate:8.5f}"
+        if mode and current_method_count > previous_method_count:
+            str_ += f" mode={mode}"
         self.logger.info(str_)
         self._save_to_file(str_)
         return percentage
