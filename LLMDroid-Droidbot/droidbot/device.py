@@ -23,6 +23,7 @@ from .desc.device_state import DeviceState
 
 DEFAULT_NUM = '1234567890'
 DEFAULT_CONTENT = 'Hello world!'
+STATE_ADB_TIMEOUT = 10
 
 
 class Device(object):
@@ -513,7 +514,7 @@ class Device(object):
         """
         Get current activity
         """
-        r = self.adb.shell("dumpsys activity activities")
+        r = self.adb.shell("dumpsys activity activities", timeout=STATE_ADB_TIMEOUT)
         activity_line_re = re.compile(r'\*\s*Hist\s*#\d+:\s*ActivityRecord\{[^ ]+\s*[^ ]+\s*([^ ]+)\s*t(\d+)}')
         m = activity_line_re.search(r)
         if m:
@@ -550,7 +551,7 @@ class Device(object):
         """
         task_to_activities = {}
 
-        lines = self.adb.shell("dumpsys activity activities").splitlines()
+        lines = self.adb.shell("dumpsys activity activities", timeout=STATE_ADB_TIMEOUT).splitlines()
         activity_line_re = re.compile(r'\*\s*Hist\s*#\d+:\s*ActivityRecord\{[^ ]+\s*[^ ]+\s*([^ ]+)\s*t(\d+)}')
 
         for line in lines:
@@ -580,7 +581,7 @@ class Device(object):
         :return: list of services
         """
         services = []
-        dat = self.adb.shell('dumpsys activity services')
+        dat = self.adb.shell('dumpsys activity services', timeout=STATE_ADB_TIMEOUT)
         lines = dat.splitlines()
         service_re = re.compile('^.+ServiceRecord{.+ ([A-Za-z0-9_.]+)/([A-Za-z0-9_.]+)')
 
@@ -770,8 +771,8 @@ class Device(object):
             self.logger.warning("push_file file does not exist: %s" % local_file)
         self.adb.run_cmd(["push", local_file, remote_dir])
 
-    def pull_file(self, remote_file, local_file):
-        self.adb.run_cmd(["pull", remote_file, local_file])
+    def pull_file(self, remote_file, local_file, timeout=None):
+        self.adb.run_cmd(["pull", remote_file, local_file], timeout=timeout)
 
     def take_screenshot(self):
         # image = None
@@ -805,9 +806,9 @@ class Device(object):
             # screencap use png format
             local_image_path = os.path.join(local_image_dir, "screen_%s.png" % tag)
             remote_image_path = "/sdcard/screen_%s.png" % tag
-            self.adb.shell("screencap -p %s" % remote_image_path)
-            self.pull_file(remote_image_path, local_image_path)
-            self.adb.shell("rm %s" % remote_image_path)
+            self.adb.shell("screencap -p %s" % remote_image_path, timeout=STATE_ADB_TIMEOUT)
+            self.pull_file(remote_image_path, local_image_path, timeout=STATE_ADB_TIMEOUT)
+            self.adb.shell("rm %s" % remote_image_path, timeout=STATE_ADB_TIMEOUT)
 
         return local_image_path
 
@@ -815,10 +816,15 @@ class Device(object):
         self.logger.debug("getting current device state...")
         current_state = None
         try:
+            self.logger.debug("get_current_state: collecting views")
             views = self.get_views()
+            self.logger.debug("get_current_state: collecting foreground activity")
             foreground_activity = self.get_top_activity_name()
+            self.logger.debug("get_current_state: collecting activity stack")
             activity_stack = self.get_current_activity_stack()
+            self.logger.debug("get_current_state: collecting services")
             background_services = self.get_service_names()
+            self.logger.debug("get_current_state: taking screenshot")
             screenshot_path = self.take_screenshot()
             self.logger.debug("finish getting current device state...")
             current_state = DeviceState(self,
