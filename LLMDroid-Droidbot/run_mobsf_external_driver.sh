@@ -87,7 +87,7 @@ PY
 
 ScriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 
-DeviceSerial="10.30.58.20:6555"
+DeviceSerial="192.168.100.99:6555"
 Python="$(default_python)"
 ApkPath=""
 OutputDir="output-mobsf-external"
